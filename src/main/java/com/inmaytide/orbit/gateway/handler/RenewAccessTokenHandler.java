@@ -1,12 +1,11 @@
 package com.inmaytide.orbit.gateway.handler;
 
-import com.carrot.commons.business.dto.Oauth2Token;
-import com.carrot.commons.consts.Constants;
-import com.carrot.commons.security.ClientDetails;
-import com.carrot.commons.utils.ValueCaches;
-import com.carrot.gateway.config.ErrorCode;
 import com.inmaytide.exception.web.BadCredentialsException;
 import com.inmaytide.exception.web.UnauthorizedException;
+import com.inmaytide.orbit.commons.consts.Marks;
+import com.inmaytide.orbit.commons.domain.Oauth2Token;
+import com.inmaytide.orbit.commons.domain.OrbitClientDetails;
+import com.inmaytide.orbit.gateway.configuration.ErrorCode;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,8 +20,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.concurrent.TimeUnit;
 
-import static com.carrot.commons.consts.Constants.CacheNames.TIMER_ACCESS_TOKEN_EXPIRES;
-
 /**
  * 当本次请求中的 <code>access_token</code> 过期时间小于 {@value REQUIRED_REFRESH_TOKEN_LT} 秒时自动获取新的 access_token 写入本次请求的 Response 和 Request 中
  *
@@ -30,7 +27,7 @@ import static com.carrot.commons.consts.Constants.CacheNames.TIMER_ACCESS_TOKEN_
  * @since 2020/12/12
  */
 @Component
-public class RenewAccessTokenHandler extends AbstractAuthorizeHandler implements GlobalFilter, Ordered {
+public class RenewAccessTokenHandler extends AbstractHandler implements GlobalFilter, Ordered {
 
     private static final Logger log = LoggerFactory.getLogger(RenewAccessTokenHandler.class);
 
@@ -67,9 +64,9 @@ public class RenewAccessTokenHandler extends AbstractAuthorizeHandler implements
     }
 
     private void wasForciblyCancelled(String accessToken) {
-        if (Constants.Marks.USER_FORCE_LOGOUT.equals(getRefreshToken(accessToken))) {
+        if (Marks.USER_FORCE_LOGOUT.getValue().equals(getRefreshToken(accessToken))) {
             log.debug("Token was forcibly cancelled by other users");
-            throw new UnauthorizedException(ErrorCode.E_0x000300001.getValue());
+            throw new UnauthorizedException(ErrorCode.E_0x00200001);
         }
     }
 
@@ -78,8 +75,8 @@ public class RenewAccessTokenHandler extends AbstractAuthorizeHandler implements
             throw new BadCredentialsException(ErrorCode.E_0x000300002.getValue());
         }
         return authorizationService.refreshToken(
-                ClientDetails.getInstance().getClientId(),
-                ClientDetails.getInstance().getClientSecret(),
+                OrbitClientDetails.getInstance().getClientId(),
+                OrbitClientDetails.getInstance().getClientSecret(),
                 refreshToken
         );
     }

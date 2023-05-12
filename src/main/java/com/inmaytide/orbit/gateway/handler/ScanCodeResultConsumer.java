@@ -29,7 +29,7 @@ import java.time.Instant;
  */
 @Component
 @RabbitListener(queues = ScanCodeHandler.ROUTEKEY_SCAN_CODE_RES)
-public class ScanCodeResultConsumer extends AbstractAuthorizeHandler {
+public class ScanCodeResultConsumer extends AbstractHandler {
 
     private static final Logger log = LoggerFactory.getLogger(ScanCodeResultConsumer.class);
 

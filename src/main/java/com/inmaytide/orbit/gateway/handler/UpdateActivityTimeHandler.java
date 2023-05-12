@@ -25,7 +25,7 @@ import java.time.Instant;
  * @since 2022/3/20
  */
 @Component
-public class UpdateActivityTimeHandler extends AbstractAuthorizeHandler implements GlobalFilter, Ordered {
+public class UpdateActivityTimeHandler extends AbstractHandler implements GlobalFilter, Ordered {
 
     private static final Logger LOG = LoggerFactory.getLogger(UpdateActivityTimeHandler.class);
 

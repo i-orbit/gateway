@@ -27,7 +27,7 @@ import static org.springframework.web.reactive.function.server.ServerResponse.ok
  * @since 2022/11/26
  */
 @Component
-public class CaptchaHandler extends AbstractAuthorizeHandler {
+public class CaptchaHandler extends AbstractHandler {
 
     private static final Logger log = LoggerFactory.getLogger(CaptchaHandler.class);
 

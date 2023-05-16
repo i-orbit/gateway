@@ -2,9 +2,10 @@ package com.inmaytide.orbit.gateway.handler;
 
 import com.inmaytide.exception.translator.ThrowableTranslator;
 import com.inmaytide.exception.web.AccessDeniedException;
+import com.inmaytide.exception.web.BadCredentialsException;
 import com.inmaytide.exception.web.HttpResponseException;
 import com.inmaytide.exception.web.domain.DefaultResponse;
-import com.inmaytide.orbit.commons.consts.ParameterNames;
+import com.inmaytide.orbit.commons.consts.HttpHeaderNames;
 import com.inmaytide.orbit.commons.consts.Platforms;
 import com.inmaytide.orbit.commons.domain.Oauth2Token;
 import com.inmaytide.orbit.commons.domain.OrbitClientDetails;
@@ -12,15 +13,16 @@ import com.inmaytide.orbit.commons.log.OperateResult;
 import com.inmaytide.orbit.commons.log.OperationLogMessageProducer;
 import com.inmaytide.orbit.commons.log.domain.OperationLog;
 import com.inmaytide.orbit.commons.service.uaa.AuthorizationService;
-import com.inmaytide.orbit.commons.utils.HttpUtils;
+import com.inmaytide.orbit.commons.service.uaa.UserService;
+import com.inmaytide.orbit.commons.utils.ValueCaches;
 import com.inmaytide.orbit.gateway.configuration.ApplicationProperties;
 import com.inmaytide.orbit.gateway.configuration.ErrorCode;
 import com.inmaytide.orbit.gateway.domain.Credentials;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.http.ResponseCookie;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.web.reactive.function.server.ServerRequest;
 
-import java.net.InetSocketAddress;
+import java.time.Instant;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author inmaytide
@@ -28,7 +30,11 @@ import java.net.InetSocketAddress;
  */
 public abstract class AbstractAuthorizeHandler extends AbstractHandler {
 
-    protected final AuthorizationService authorizationService;
+    protected final static int MAXIMUM_NUMBER_OF_FAILED_LOGIN_ATTEMPTS = 5;
+
+    protected final static int EXCEED_NUMBER_LOCK_TIMES_IN_MINUTE = 5;
+
+    protected final static String CACHE_NAME_LOGIN_FAILURE_NUMBERS = "LOGIN_FAILURE_NUMBERS";
 
     protected final OperationLogMessageProducer producer;
 
@@ -36,22 +42,16 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
 
     protected final ThrowableTranslator<HttpResponseException> throwableTranslator;
 
-    protected AbstractAuthorizeHandler(AuthorizationService authorizationService, OperationLogMessageProducer producer, ApplicationProperties properties, ThrowableTranslator<HttpResponseException> throwableTranslator) {
-        this.authorizationService = authorizationService;
+    protected final UserService userService;
+
+    private final CaptchaHandler captchaHandler;
+
+    protected AbstractAuthorizeHandler(OperationLogMessageProducer producer, ApplicationProperties properties, ThrowableTranslator<HttpResponseException> throwableTranslator, UserService userService, CaptchaHandler captchaHandler) {
         this.producer = producer;
         this.properties = properties;
         this.throwableTranslator = throwableTranslator;
-    }
-
-
-    public static String getClientIpAddress(ServerRequest request) {
-        for (String name : HttpUtils.HEADER_NAMES_FOR_CLIENT_ID) {
-            String value = request.headers().firstHeader(name);
-            if (StringUtils.isNotBlank(value) && !StringUtils.equals("unknown", value)) {
-                return HttpUtils.getIpAddress(value);
-            }
-        }
-        return request.remoteAddress().map(InetSocketAddress::getHostName).orElse(StringUtils.EMPTY);
+        this.userService = userService;
+        this.captchaHandler = captchaHandler;
     }
 
     protected void assertAllowAccessSource(ServerRequest request, Credentials credentials) {
@@ -59,8 +59,8 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
         String geolocation = searchIpAddressGeolocation(ipAddress);
         getLogger().debug("Client IP Address: {}", ipAddress);
         getLogger().debug("Client IP Address Geolocation: {}", geolocation);
-        if (properties.getDisabledAccessSources().stream().anyMatch(e -> ipAddress.contains(e) || geolocation.contains(e))
-                || properties.getEnabledAccessSources().stream().noneMatch(geolocation::contains)) {
+        if ((properties.getDisabledAccessSources() != null && properties.getDisabledAccessSources().stream().anyMatch(e -> ipAddress.contains(e) || geolocation.contains(e)))
+                || (properties.getEnabledAccessSources() != null && properties.getEnabledAccessSources().stream().noneMatch(geolocation::contains))) {
             OperationLog log = buildOperationLog(request, credentials.getPlatform());
             log.setResult(OperateResult.FAIL);
             log.setArguments(credentials.toString());
@@ -71,42 +71,38 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
     }
 
     protected Integer getFailuresNumber(String username) {
-
+        return NumberUtils.createInteger(ValueCaches.get(CACHE_NAME_LOGIN_FAILURE_NUMBERS, username).orElse("0"));
     }
 
     protected void accumulateFailuresNumber(String username) {
-
+        Integer number = getFailuresNumber(username);
+        ValueCaches.put(CACHE_NAME_LOGIN_FAILURE_NUMBERS, username, String.valueOf(number + 1), EXCEED_NUMBER_LOCK_TIMES_IN_MINUTE, TimeUnit.MINUTES);
     }
 
     protected Oauth2Token login(ServerRequest request, Credentials credentials) {
+        credentials.validate();
         getLogger().debug("Received login request from user \"{}\"", credentials.getUsername());
         assertAllowAccessSource(request, credentials);
         try {
-            int failuresCount = getFailuresNumber(credentials.getUsername());
-            if (failuresCount >= 5) {
-                throw new AccessDeniedException(ErrorCode.E_0x00200003, "5", "5");
+            int failuresNumber = getFailuresNumber(credentials.getUsername());
+            if (failuresNumber >= MAXIMUM_NUMBER_OF_FAILED_LOGIN_ATTEMPTS) {
+                throw new AccessDeniedException(ErrorCode.E_0x00200003, String.valueOf(MAXIMUM_NUMBER_OF_FAILED_LOGIN_ATTEMPTS), String.valueOf(EXCEED_NUMBER_LOCK_TIMES_IN_MINUTE));
             }
-            if (failuresCount >= 1) {
+            if (failuresNumber >= 1) {
                 if (!captchaHandler.validate(credentials.getCaptchaKey(), credentials.getCaptchaValue())) {
-                    throw new AccessDeniedException(ErrorCode.E_0x000300008.getValue());
+                    throw new BadCredentialsException(ErrorCode.E_0x00200007);
                 }
             }
-
             Oauth2Token token = authorizationService.getToken(
                     OrbitClientDetails.getInstance().getClientId(),
                     OrbitClientDetails.getInstance().getClientSecret(),
                     credentials.getUsername(),
                     credentials.getPassword(),
-                    credentials.getPlatform()
+                    credentials.getPlatform(),
+                    credentials.getForcedReplacement()
             );
             onSuccess(request, credentials);
-
-            ResponseCookie cookie = ResponseCookie.from(ParameterNames.ACCESS_TOKEN)
-                    .httpOnly(true)
-                    .maxAge(token.getExpiresIn())
-                    .value(token.getAccessToken())
-                    .build();
-            request.exchange().getResponse().addCookie(cookie);
+            setAccessTokenCookie(request, token);
             return token;
         } catch (Exception e) {
             accumulateFailuresNumber(credentials.getUsername());
@@ -116,9 +112,8 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
     }
 
     private void onSuccess(ServerRequest request, Credentials credentials) {
-        User user = authorizationService.findUserByUsername(credentials.getUsername());
         OperationLog log = buildOperationLog(request, credentials.getPlatform());
-        log.setOperator(user.getId());
+        userService.getIdByUsername(credentials.getUsername()).ifPresent(log::setOperator);
         log.setResult(OperateResult.SUCCESS);
         log.setArguments(credentials.toString());
         producer.produce(log);
@@ -135,6 +130,17 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
     }
 
     private OperationLog buildOperationLog(ServerRequest request, Platforms platform) {
+        OperationLog log = new OperationLog();
+        log.setOperateTime(Instant.now());
+        log.setDescription("用户名密码登录");
+        log.setBusiness("用户登录");
+        log.setChain(request.headers().firstHeader(HttpHeaderNames.CALL_CHAIN));
+        log.setPlatform(platform.name());
+        log.setUrl(request.path());
+        log.setHttpMethod(request.method().name());
+        log.setClientDescription(request.headers().firstHeader(HttpHeaderNames.USER_AGENT));
+        log.setIpAddress(getClientIpAddress(request));
+        return log;
     }
 
 }

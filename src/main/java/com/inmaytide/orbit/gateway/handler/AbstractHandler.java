@@ -3,15 +3,22 @@ package com.inmaytide.orbit.gateway.handler;
 import com.inmaytide.orbit.commons.consts.HttpHeaderNames;
 import com.inmaytide.orbit.commons.consts.Marks;
 import com.inmaytide.orbit.commons.consts.ParameterNames;
+import com.inmaytide.orbit.commons.domain.Oauth2Token;
 import com.inmaytide.orbit.commons.service.uaa.AuthorizationService;
+import com.inmaytide.orbit.commons.utils.HttpUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.lionsoul.ip2region.xdb.Searcher;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpCookie;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.lang.Nullable;
 import org.springframework.web.reactive.function.server.ServerRequest;
+import org.springframework.web.server.ServerWebExchange;
+
+import java.net.InetSocketAddress;
 
 /**
  * @author inmaytide
@@ -19,8 +26,48 @@ import org.springframework.web.reactive.function.server.ServerRequest;
  */
 public abstract class AbstractHandler {
 
+    @Lazy
+    @Autowired
+    protected AuthorizationService authorizationService;
+
     @Autowired
     private Searcher searcher;
+
+    private ResponseCookie buildAccessTokenCookie(Oauth2Token token) {
+        return ResponseCookie.from(ParameterNames.ACCESS_TOKEN)
+                .httpOnly(true)
+                .maxAge(token.getExpiresIn())
+                .value(token.getAccessToken())
+                .build();
+    }
+
+    protected void setAccessTokenCookie(ServerRequest request, Oauth2Token token) {
+        request.exchange().getResponse().addCookie(buildAccessTokenCookie(token));
+    }
+
+    protected void setAccessTokenCookie(ServerWebExchange exchange, Oauth2Token token) {
+        exchange.getResponse().addCookie(buildAccessTokenCookie(token));
+    }
+
+    protected String getClientIpAddress(ServerRequest request) {
+        for (String name : HttpUtils.HEADER_NAMES_FOR_CLIENT_ID) {
+            String value = request.headers().firstHeader(name);
+            if (StringUtils.isNotBlank(value) && !StringUtils.equalsIgnoreCase("unknown", value)) {
+                return HttpUtils.getIpAddress(value);
+            }
+        }
+        return request.remoteAddress().map(InetSocketAddress::getHostName).orElse(StringUtils.EMPTY);
+    }
+
+    protected String getClientIpAddress(ServerHttpRequest request) {
+        for (String name : HttpUtils.HEADER_NAMES_FOR_CLIENT_ID) {
+            String value = request.getHeaders().getFirst(name);
+            if (StringUtils.isNotBlank(value) && !StringUtils.equalsIgnoreCase("unknown", value)) {
+                return HttpUtils.getIpAddress(value);
+            }
+        }
+        return request.getRemoteAddress() == null ? StringUtils.EMPTY : request.getRemoteAddress().getHostName();
+    }
 
     protected String getAccessToken(ServerRequest request) {
         String token = request.headers().firstHeader(HttpHeaderNames.AUTHORIZATION);
@@ -37,7 +84,9 @@ public abstract class AbstractHandler {
             getLogger().debug("There is no access token in this request");
             return StringUtils.EMPTY;
         }
-        return token.replace(HttpHeaderNames.AUTHORIZATION_PREFIX, "");
+        token = token.replace(HttpHeaderNames.AUTHORIZATION_PREFIX, "");
+        getLogger().debug("Received access token from the request is \"{}\"", token);
+        return token;
     }
 
     protected String getAccessToken(ServerHttpRequest request) {
@@ -55,7 +104,9 @@ public abstract class AbstractHandler {
             getLogger().debug("There is no access token in this request");
             return StringUtils.EMPTY;
         }
-        return token.replace(HttpHeaderNames.AUTHORIZATION_PREFIX, "");
+        token = token.replace(HttpHeaderNames.AUTHORIZATION_PREFIX, "");
+        getLogger().debug("Received access token from the request is \"{}\"", token);
+        return token;
     }
 
     protected String searchIpAddressGeolocation(@Nullable String ipAddress) {
@@ -76,7 +127,11 @@ public abstract class AbstractHandler {
                     }
                 }
             } catch (Exception e) {
-                getLogger().error("Failed to search geolocation of ip address \"{}\" with ip2region Searcher, Cause by: \n", ipAddress, e);
+                if (getLogger().isDebugEnabled()) {
+                    getLogger().error("Failed to search geolocation of ip address \"{}\" with ip2region Searcher, Cause by: \n", ipAddress, e);
+                } else {
+                    getLogger().error("Failed to search geolocation of ip address \"{}\" with ip2region Searcher", ipAddress);
+                }
             }
         }
         return Marks.NOT_APPLICABLE.getValue();

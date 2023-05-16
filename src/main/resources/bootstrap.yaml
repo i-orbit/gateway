@@ -10,13 +10,16 @@ spring:
     allow-bean-definition-overriding: true
   cloud:
     nacos:
-      server-addr: 192.168.26.190:8848
-      username: nacos
-      password: nacos
       discovery:
-        namespace: ${spring.profiles.active}
+        server-addr: 192.168.26.195:8848
+        namespace: orbit-${spring.profiles.active}
+        username: nacos
+        password: nacos
       config:
-        namespace: ${spring.profiles.active}
+        server-addr: 192.168.26.195:8848
+        username: nacos
+        password: nacos
+        namespace: orbit-${spring.profiles.active}
         file-extension: yaml
         extension-configs:
           - common.yaml

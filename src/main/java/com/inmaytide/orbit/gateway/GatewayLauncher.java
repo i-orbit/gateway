@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.io.ClassPathResource;
 
 import java.io.IOException;
 
@@ -21,9 +22,7 @@ public class GatewayLauncher {
     @Bean("ipRegionSearcher")
     public Searcher searcher() throws IOException {
         try {
-            String fileAddress = System.getProperty("user.dir") + "/ip2region.xdb";
-            byte[] bytes = Searcher.loadContentFromFile(fileAddress);
-            return Searcher.newWithBuffer(bytes);
+            return Searcher.newWithBuffer(new ClassPathResource("ip2region.xdb").getContentAsByteArray());
         } catch (Exception e) {
             LOG.error("Failed to create content cached searcher, Cause by: \n", e);
             throw e;

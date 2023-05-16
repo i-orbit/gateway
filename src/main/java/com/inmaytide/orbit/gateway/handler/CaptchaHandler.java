@@ -1,21 +1,23 @@
 package com.inmaytide.orbit.gateway.handler;
 
-import com.carrot.gateway.config.ErrorCode;
+
 import com.inmaytide.exception.web.BadRequestException;
+import com.inmaytide.orbit.commons.service.uaa.AuthorizationService;
+import com.inmaytide.orbit.commons.utils.ValueCaches;
+import com.inmaytide.orbit.gateway.configuration.ErrorCode;
+import com.inmaytide.orbit.gateway.util.CaptchaGenerator;
 import org.apache.commons.lang3.StringUtils;
-import org.patchca.service.ConfigurableCaptchaService;
-import org.patchca.utils.encoder.EncoderHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
-import org.springframework.util.Base64Utils;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Base64;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -31,38 +33,25 @@ public class CaptchaHandler extends AbstractHandler {
 
     private static final Logger log = LoggerFactory.getLogger(CaptchaHandler.class);
 
-    private static final String CACHE_CAPTCHA_KEY_PATTERN = "redis-captcha::%s";
-
-    private static final String DEFAULT_IMAGE_FORMAT = "png";
-
-    private final ConfigurableCaptchaService service;
-
-    public CaptchaHandler(ConfigurableCaptchaService service) {
-        this.service = service;
-    }
-
-    private String generateCacheName(String cacheName) {
-        return String.format(CACHE_CAPTCHA_KEY_PATTERN, cacheName);
-    }
+    private static final String CACHE_NAME_CAPTCHA = "CAPTCHA";
 
     public Mono<ServerResponse> getCaptcha(@NonNull ServerRequest request) {
         String captchaKey = UUID.randomUUID().toString();
-        String cacheName = generateCacheName(captchaKey);
         try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {
-            String captcha = EncoderHelper.getChallangeAndWriteImage(service, DEFAULT_IMAGE_FORMAT, os);
-            String image = Base64Utils.encodeToString(os.toByteArray());
-            stringRedisTemplate.opsForValue().set(cacheName, captcha, 15, TimeUnit.MINUTES);
+            String captcha = CaptchaGenerator.generate(os);
+            String image = Base64.getEncoder().encodeToString(os.toByteArray());
+            ValueCaches.put(CACHE_NAME_CAPTCHA, captchaKey, captcha, 15, TimeUnit.MINUTES);
             return ok().body(Mono.just(Map.of("image", image, "captchaKey", captchaKey)), Map.class);
         } catch (IOException e) {
             log.error("An error occurred while generating the captcha, Cause by: ", e);
-            throw new BadRequestException(ErrorCode.E_0x000300006.getValue());
+            throw new BadRequestException(ErrorCode.E_0x00200008);
         }
     }
 
     public boolean validate(String captchaKey, String captchaValue) {
-        String cacheName = generateCacheName(captchaKey);
-        String value = stringRedisTemplate.opsForValue().getAndDelete(cacheName);
-        return StringUtils.equals(value, captchaValue);
+        return ValueCaches.getAndDelete(CACHE_NAME_CAPTCHA, captchaKey)
+                .map(value -> StringUtils.equalsIgnoreCase(value, captchaValue))
+                .orElse(false);
     }
 
     @Override

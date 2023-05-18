@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
@@ -38,14 +39,14 @@ public class UserActivityMonitor extends AbstractHandler implements GlobalFilter
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        // 写入接口调用链表示
-        exchange.getRequest().getHeaders().add(HttpHeaderNames.CALL_CHAIN, CodecUtils.generateUUID());
         // 获取登录token, 如果拿到token后, 尝试生成用户在线记录写入缓存
         String token = getAccessToken(exchange.getRequest());
         if (StringUtils.isNotBlank(token)) {
             new Thread(() -> setOnlineCache(exchange, token)).start();
         }
-        return chain.filter(exchange);
+        // 写入接口调用链标识
+        ServerHttpRequest request = exchange.getRequest().mutate().header(HttpHeaderNames.CALL_CHAIN, CodecUtils.generateUUID()).build();
+        return chain.filter(exchange.mutate().request(request).build());
     }
 
     private String getOnlineUserCacheKey(Long userId, Platforms platform) {

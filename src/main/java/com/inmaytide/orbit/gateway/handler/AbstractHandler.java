@@ -36,6 +36,7 @@ public abstract class AbstractHandler {
     private ResponseCookie buildAccessTokenCookie(Oauth2Token token) {
         return ResponseCookie.from(ParameterNames.ACCESS_TOKEN)
                 .httpOnly(true)
+                .path("/")
                 .maxAge(token.getExpiresIn())
                 .value(token.getAccessToken())
                 .build();
@@ -111,6 +112,9 @@ public abstract class AbstractHandler {
 
     protected String searchIpAddressGeolocation(@Nullable String ipAddress) {
         if (StringUtils.isNotBlank(ipAddress)) {
+            if (StringUtils.equalsIgnoreCase(ipAddress, "localhost") || "127.0.0.1".equals(ipAddress)) {
+                return Marks.LOCAL.getValue();
+            }
             try {
                 String region = searcher.search(ipAddress);
                 if (StringUtils.isBlank(region)) {
@@ -120,7 +124,7 @@ public abstract class AbstractHandler {
                 String country = regions[0];
                 for (int i = regions.length - 2; i >= 0; i--) {
                     if ("内网IP".equalsIgnoreCase(regions[i])) {
-                        return "LAN";
+                        return Marks.LAN.getValue();
                     }
                     if (!"0".equals(regions[i])) {
                         return i != 0 ? country + "-" + regions[i] : regions[i];

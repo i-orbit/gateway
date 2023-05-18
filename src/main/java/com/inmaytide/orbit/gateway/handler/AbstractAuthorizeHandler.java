@@ -4,6 +4,7 @@ import com.inmaytide.exception.translator.ThrowableTranslator;
 import com.inmaytide.exception.web.AccessDeniedException;
 import com.inmaytide.exception.web.BadCredentialsException;
 import com.inmaytide.exception.web.HttpResponseException;
+import com.inmaytide.exception.web.ServiceUnavailableException;
 import com.inmaytide.exception.web.domain.DefaultResponse;
 import com.inmaytide.orbit.commons.consts.HttpHeaderNames;
 import com.inmaytide.orbit.commons.consts.Platforms;
@@ -105,13 +106,16 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
             setAccessTokenCookie(request, token);
             return token;
         } catch (Exception e) {
-            accumulateFailuresNumber(credentials.getUsername());
+            if (!(e instanceof ServiceUnavailableException)) {
+                accumulateFailuresNumber(credentials.getUsername());
+            }
             onFailed(request, credentials, e);
             throw e;
         }
     }
 
     private void onSuccess(ServerRequest request, Credentials credentials) {
+        ValueCaches.delete(CACHE_NAME_LOGIN_FAILURE_NUMBERS, credentials.getUsername());
         OperationLog log = buildOperationLog(request, credentials.getPlatform());
         userService.getIdByUsername(credentials.getUsername()).ifPresent(log::setOperator);
         log.setResult(OperateResult.SUCCESS);

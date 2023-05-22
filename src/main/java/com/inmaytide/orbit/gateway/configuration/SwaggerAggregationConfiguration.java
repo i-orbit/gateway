@@ -3,6 +3,7 @@ package com.inmaytide.orbit.gateway.configuration;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import springfox.documentation.oas.annotations.EnableOpenApi;
 import springfox.documentation.swagger.web.SwaggerResource;
 import springfox.documentation.swagger.web.SwaggerResourcesProvider;
 
@@ -14,6 +15,7 @@ import java.util.stream.Collectors;
 
 @Primary
 @Configuration
+@EnableOpenApi
 public class SwaggerAggregationConfiguration implements SwaggerResourcesProvider {
 
     private static final String OAS_30_URL = "/v3/api-docs";

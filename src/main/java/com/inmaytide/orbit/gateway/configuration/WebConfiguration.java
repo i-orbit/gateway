@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springdoc.core.annotations.RouterOperation;
 import org.springdoc.core.annotations.RouterOperations;
@@ -56,22 +57,7 @@ public class WebConfiguration {
             @RouterOperation(
                     path = "/authorize/login",
                     beanClass = LoginWithUsernameAndPasswordHandler.class,
-                    beanMethod = "loginWithUsernameAndPassword",
-                    method = RequestMethod.POST,
-                    operation = @Operation(
-                            operationId = "login",
-                            description = "通过用户名密码登录系统",
-                            parameters = @Parameter(
-                                    content = @Content(
-                                            schema = @Schema(implementation = Credentials.class)
-                                    )
-                            ),
-                            responses = @ApiResponse(
-                                    content = @Content(
-                                            schema = @Schema(implementation = AccessToken.class)
-                                    )
-                            )
-                    )
+                    beanMethod = "loginWithUsernameAndPassword"
             ),
     })
     public RouterFunction<?> routers() {

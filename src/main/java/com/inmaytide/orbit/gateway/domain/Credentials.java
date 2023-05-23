@@ -6,6 +6,9 @@ import com.inmaytide.orbit.commons.consts.Marks;
 import com.inmaytide.orbit.commons.consts.Platforms;
 import com.inmaytide.orbit.commons.utils.CodecUtils;
 import com.inmaytide.orbit.gateway.configuration.ErrorCode;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +21,7 @@ import java.util.Objects;
  * @author inmaytide
  * @since 2023/5/12
  */
+@Schema(title = "通过用户名密码登录请求实体")
 public class Credentials implements Serializable {
 
     private static final Logger log = LoggerFactory.getLogger(Credentials.class);
@@ -25,18 +29,27 @@ public class Credentials implements Serializable {
     @Serial
     private static final long serialVersionUID = 8244301757430198268L;
 
+    @NotBlank
+    @Schema(title = "用户登录名")
     private String username;
 
+    @NotBlank
+    @Schema(title = "用户登录密码", description = "需要传输通过RSA加密后的字符串")
     private String password;
 
+    @Schema(title = "记住我")
     private boolean rememberMe = false;
 
+    @Schema(title = "验证码存储缓存KEY", description = "登录尝试失败超过一次后必填")
     private String captchaKey;
 
+    @Schema(title = "验证码", description = "登录尝试失败超过一次后必填")
     private String captchaValue;
 
+    @Schema(title = "客户端平台")
     private Platforms platform;
 
+    @Schema(title = "强制登录", description = "当用户在同客户端平台其他位置已登录时, 是否强制其他位置的登录下线")
     private Is forcedReplacement;
 
     public void validate() {

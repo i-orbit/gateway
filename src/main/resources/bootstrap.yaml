@@ -26,6 +26,3 @@ spring:
           - common.yaml
           - redis.yaml
           - rabbitmq.yaml
-springdoc:
-  api-docs:
-    path: /swagger-ui.html

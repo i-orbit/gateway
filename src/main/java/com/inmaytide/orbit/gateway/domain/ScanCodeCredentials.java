@@ -2,8 +2,7 @@ package com.inmaytide.orbit.gateway.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.inmaytide.orbit.commons.utils.CodecUtils;
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 
@@ -14,15 +13,15 @@ import java.time.Instant;
  * @author inmaytide
  * @since 2022/9/8
  */
-@ApiModel("扫码登录二维码内容验证")
+@Schema(title = "扫码登录二维码内容验证")
 public class ScanCodeCredentials implements Serializable {
 
     private static final long serialVersionUID = -8555725055594984597L;
 
-    @ApiModelProperty("二维码内容")
+    @Schema(title = "二维码内容")
     private String content;
 
-    @ApiModelProperty("要登录的用户用户名")
+    @Schema(title = "要登录的用户用户名")
     private String username;
 
     @JsonIgnore

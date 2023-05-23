@@ -8,6 +8,7 @@ import com.inmaytide.orbit.commons.service.uaa.UserService;
 import com.inmaytide.orbit.gateway.configuration.ApplicationProperties;
 import com.inmaytide.orbit.gateway.domain.AccessToken;
 import com.inmaytide.orbit.gateway.domain.Credentials;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.lang.NonNull;
@@ -24,6 +25,7 @@ import static org.springframework.web.reactive.function.server.ServerResponse.ok
  * @since 2023/5/12
  */
 @Component
+@Schema(title = "通过用户名密码登录系统处理器")
 public class LoginWithUsernameAndPasswordHandler extends AbstractAuthorizeHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(LoginWithUsernameAndPasswordHandler.class);

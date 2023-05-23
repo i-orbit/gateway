@@ -1,8 +1,7 @@
 package com.inmaytide.orbit.gateway.domain;
 
 import com.inmaytide.orbit.gateway.configuration.ErrorCode;
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -11,25 +10,25 @@ import java.io.Serializable;
  * @author inmaytide
  * @since 2022/9/8
  */
-@ApiModel("扫码登录二维码验证结果")
+@Schema(title = "扫码登录二维码验证结果")
 public class ScanCodeResult implements Serializable {
 
     @Serial
     private static final long serialVersionUID = -7082431747878098210L;
 
-    @ApiModelProperty("Websocket Session标识")
+    @Schema(title = "Websocket Session标识")
     private String sessionId;
 
-    @ApiModelProperty("登录的用户名")
+    @Schema(title = "登录的用户名")
     private String username;
 
-    @ApiModelProperty("验证结果")
+    @Schema(title = "验证结果")
     private String result;
 
-    @ApiModelProperty("失败原因")
+    @Schema(title = "失败原因")
     private String message;
 
-    @ApiModelProperty("验证成功后返回的 AccessToken")
+    @Schema(title = "验证成功后返回的 AccessToken")
     private String accessToken;
 
     public static ScanCodeResult withCredentials(ScanCodeCredentials credentials) {

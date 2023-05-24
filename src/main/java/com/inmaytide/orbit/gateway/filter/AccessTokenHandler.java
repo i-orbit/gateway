@@ -1,7 +1,7 @@
 package com.inmaytide.orbit.gateway.filter;
 
 import com.inmaytide.orbit.commons.consts.HttpHeaderNames;
-import com.inmaytide.orbit.commons.service.uaa.AuthorizationService;
+import com.inmaytide.orbit.commons.consts.ParameterNames;
 import com.inmaytide.orbit.gateway.handler.AbstractHandler;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -19,7 +19,14 @@ import java.net.URI;
 import java.util.Collections;
 
 /**
- * 整理请求参数中/Cookie中的 Access Token 值, 转入 http header 中
+ * Since Spring Security OAuth2 by default only recognizes access tokens named "Authorization" in the HTTP header,
+ * in order to support passing the access token through cookies and request parameters, it is necessary to
+ * transfer the value of "access_token" from the request parameters or cookies to the HTTP header named "Authorization".
+ * <br/><br/>
+ *
+ * <b>2022/5/18:</b> After removing the default configuration, it has been verified that Spring Security OAuth2 does not automatically
+ * fetch the AccessToken from the request parameters or cookies. Further enhancements will be explored to optimize
+ * this functionality once a better solution is discovered.
  *
  * @author luomiao
  * @since 2021/4/25
@@ -36,7 +43,7 @@ public class AccessTokenHandler extends AbstractHandler implements GlobalFilter,
             token = getAccessToken(exchange.getRequest());
             if (StringUtils.isNotBlank(token)) {
                 URI uri = exchange.getRequest().getURI();
-                uri = UriComponentsBuilder.fromUri(uri).replaceQueryParam("access_token", Collections.emptyList()).build().toUri();
+                uri = UriComponentsBuilder.fromUri(uri).replaceQueryParam(ParameterNames.ACCESS_TOKEN, Collections.emptyList()).build().toUri();
                 ServerHttpRequest request = exchange.getRequest()
                         .mutate()
                         .header(HttpHeaderNames.AUTHORIZATION, HttpHeaderNames.AUTHORIZATION_PREFIX + token)

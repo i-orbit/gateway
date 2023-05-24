@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
  * 当本次请求中的 <code>access_token</code> 有效时间小于 {@value REQUIRED_REFRESH_TOKEN_LT} 秒时 <br/>
  * 自动调用刷新 token 的接口获取新的 access_token 写入本次请求的 Response 和 Request 中
  *
- * @author luomiao
+ * @author inmaytide
  * @since 2020/12/12
  */
 @Component
@@ -71,11 +71,7 @@ public class RenewAccessTokenHandler extends AbstractHandler implements GlobalFi
         if (StringUtils.isBlank(refreshToken)) {
             throw new BadCredentialsException();
         }
-        return authorizationService.refreshToken(
-                OrbitClientDetails.getInstance().getClientId(),
-                OrbitClientDetails.getInstance().getClientSecret(),
-                refreshToken
-        );
+        return authorizationService.refreshToken(refreshToken);
     }
 
     private void doCache(final String key, final Oauth2Token value) {

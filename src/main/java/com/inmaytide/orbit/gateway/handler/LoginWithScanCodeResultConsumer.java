@@ -65,8 +65,6 @@ public class LoginWithScanCodeResultConsumer extends AbstractAuthorizeHandler {
 
     private void execute(ScanCodeResult res, LoginWithScanCodeHandler.WebSocketSender sender) {
         Oauth2Token token = authorizationService.getToken(
-                OrbitClientDetails.getInstance().getClientId(),
-                OrbitClientDetails.getInstance().getClientSecret(),
                 res.getUsername(),
                 Marks.LOGIN_WITHOUT_PASSWORD.getValue(),
                 Platforms.WEB,

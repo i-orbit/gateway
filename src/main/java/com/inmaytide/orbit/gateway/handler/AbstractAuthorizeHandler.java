@@ -13,7 +13,6 @@ import com.inmaytide.orbit.commons.domain.OrbitClientDetails;
 import com.inmaytide.orbit.commons.log.OperateResult;
 import com.inmaytide.orbit.commons.log.OperationLogMessageProducer;
 import com.inmaytide.orbit.commons.log.domain.OperationLog;
-import com.inmaytide.orbit.commons.service.uaa.AuthorizationService;
 import com.inmaytide.orbit.commons.service.uaa.UserService;
 import com.inmaytide.orbit.commons.utils.ValueCaches;
 import com.inmaytide.orbit.gateway.configuration.ApplicationProperties;
@@ -95,8 +94,6 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
                 }
             }
             Oauth2Token token = authorizationService.getToken(
-                    OrbitClientDetails.getInstance().getClientId(),
-                    OrbitClientDetails.getInstance().getClientSecret(),
                     credentials.getUsername(),
                     credentials.getPassword(),
                     credentials.getPlatform(),

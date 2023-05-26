@@ -26,3 +26,7 @@ spring:
           - common.yaml
           - redis.yaml
           - rabbitmq.yaml
+    gateway:
+      predicate:
+        weight:
+          enabled: false

@@ -7,10 +7,9 @@ import com.inmaytide.exception.web.HttpResponseException;
 import com.inmaytide.exception.web.ServiceUnavailableException;
 import com.inmaytide.exception.web.domain.DefaultResponse;
 import com.inmaytide.orbit.commons.consts.HttpHeaderNames;
+import com.inmaytide.orbit.commons.consts.Is;
 import com.inmaytide.orbit.commons.consts.Platforms;
 import com.inmaytide.orbit.commons.domain.Oauth2Token;
-import com.inmaytide.orbit.commons.domain.OrbitClientDetails;
-import com.inmaytide.orbit.commons.log.OperateResult;
 import com.inmaytide.orbit.commons.log.OperationLogMessageProducer;
 import com.inmaytide.orbit.commons.log.domain.OperationLog;
 import com.inmaytide.orbit.commons.service.uaa.UserService;
@@ -61,8 +60,8 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
         getLogger().debug("Client IP Address Geolocation: {}", geolocation);
         if ((properties.getDisabledAccessSources() != null && properties.getDisabledAccessSources().stream().anyMatch(e -> ipAddress.contains(e) || geolocation.contains(e)))
                 || (properties.getEnabledAccessSources() != null && properties.getEnabledAccessSources().stream().noneMatch(geolocation::contains))) {
-            OperationLog log = buildOperationLog(request, credentials.getPlatform());
-            log.setResult(OperateResult.FAIL);
+            OperationLog log = buildOperationLog(request, credentials);
+            log.setResult(Is.N);
             log.setArguments(credentials.toString());
             log.setResponse("受限地区访问");
             producer.produce(log);
@@ -113,16 +112,15 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
 
     private void onSuccess(ServerRequest request, Credentials credentials) {
         ValueCaches.delete(CACHE_NAME_LOGIN_FAILURE_NUMBERS, credentials.getUsername());
-        OperationLog log = buildOperationLog(request, credentials.getPlatform());
-        userService.getIdByUsername(credentials.getUsername()).ifPresent(log::setOperator);
-        log.setResult(OperateResult.SUCCESS);
+        OperationLog log = buildOperationLog(request, credentials);
+        log.setResult(Is.Y);
         log.setArguments(credentials.toString());
         producer.produce(log);
     }
 
     private void onFailed(ServerRequest request, Credentials credentials, Throwable e) {
-        OperationLog log = buildOperationLog(request, credentials.getPlatform());
-        log.setResult(OperateResult.FAIL);
+        OperationLog log = buildOperationLog(request, credentials);
+        log.setResult(Is.N);
         log.setArguments(credentials.toString());
         throwableTranslator
                 .translate(e)
@@ -130,17 +128,21 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
         producer.produce(log);
     }
 
-    private OperationLog buildOperationLog(ServerRequest request, Platforms platform) {
+    private OperationLog buildOperationLog(ServerRequest request, Credentials credentials) {
         OperationLog log = new OperationLog();
-        log.setOperateTime(Instant.now());
+        log.setOperationTime(Instant.now());
         log.setDescription("用户名密码登录");
         log.setBusiness("用户登录");
         log.setChain(request.headers().firstHeader(HttpHeaderNames.CALL_CHAIN));
-        log.setPlatform(platform.name());
-        log.setUrl(request.path());
+        log.setPlatform(credentials.getPlatform().name());
+        log.setPath(request.path());
         log.setHttpMethod(request.method().name());
         log.setClientDescription(request.headers().firstHeader(HttpHeaderNames.USER_AGENT));
         log.setIpAddress(getClientIpAddress(request));
+        userService.getUserByUsername(credentials.getUsername()).ifPresent(user -> {
+            log.setOperator(user.getId());
+            log.setTenantId(user.getTenantId());
+        });
         return log;
     }
 

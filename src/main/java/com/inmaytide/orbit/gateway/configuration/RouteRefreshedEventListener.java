@@ -40,7 +40,7 @@ public class RouteRefreshedEventListener implements ApplicationListener<RefreshR
         }
         if (event.getSource() instanceof RouteLocator routeLocator) {
             synchronized (properties) {
-                LOG.info("Detected that Gateway's routes has been refreshed, and it is now starting to refresh the Swagger URLs");
+                LOG.debug("Detected that Gateway's routes has been refreshed, and it is now starting to refresh the Swagger URLs");
                 Set<AbstractSwaggerUiConfigProperties.SwaggerUrl> URLs = new HashSet<>();
                 getInstances(routeLocator).forEach(service -> {
                     AbstractSwaggerUiConfigProperties.SwaggerUrl URL = new AbstractSwaggerUiConfigProperties.SwaggerUrl();
@@ -49,7 +49,7 @@ public class RouteRefreshedEventListener implements ApplicationListener<RefreshR
                     URLs.add(URL);
                 });
                 properties.setUrls(URLs);
-                LOG.info("Swagger URLs refreshed");
+                LOG.debug("Swagger URLs refreshed");
             }
         }
     }

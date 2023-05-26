@@ -6,11 +6,8 @@ import com.inmaytide.orbit.commons.consts.Is;
 import com.inmaytide.orbit.commons.consts.Marks;
 import com.inmaytide.orbit.commons.consts.Platforms;
 import com.inmaytide.orbit.commons.domain.Oauth2Token;
-import com.inmaytide.orbit.commons.domain.OrbitClientDetails;
-import com.inmaytide.orbit.commons.log.OperateResult;
 import com.inmaytide.orbit.commons.log.OperationLogMessageProducer;
 import com.inmaytide.orbit.commons.log.domain.OperationLog;
-import com.inmaytide.orbit.commons.service.uaa.AuthorizationService;
 import com.inmaytide.orbit.commons.service.uaa.UserService;
 import com.inmaytide.orbit.commons.utils.HttpUtils;
 import com.inmaytide.orbit.gateway.configuration.ApplicationProperties;
@@ -24,8 +21,6 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.socket.HandshakeInfo;
-
-import java.time.Instant;
 
 /**
  * @author inmaytide
@@ -71,16 +66,18 @@ public class LoginWithScanCodeResultConsumer extends AbstractAuthorizeHandler {
                 Is.Y
         );
         OperationLog log = new OperationLog();
-        log.setOperateTime(Instant.now());
         log.setDescription("APP扫码登录");
         log.setBusiness("用户登录");
         log.setPlatform(Platforms.WEB.name());
-        log.setUrl(sender.getSession().getHandshakeInfo().getUri().toString());
+        log.setPath(sender.getSession().getHandshakeInfo().getUri().toString());
         log.setHttpMethod("WebSocket");
         log.setClientDescription(sender.getSession().getHandshakeInfo().getHeaders().getFirst("User-Agent"));
         log.setIpAddress(getClientIpAddress(sender.getSession().getHandshakeInfo()));
-        log.setResult(OperateResult.SUCCESS);
-        userService.getIdByUsername(res.getUsername()).ifPresent(log::setOperator);
+        log.setResult(Is.Y);
+        userService.getUserByUsername(res.getUsername()).ifPresent(user -> {
+            log.setOperator(user.getId());
+            log.setTenantId(user.getTenantId());
+        });
         producer.produce(log);
         res.setAccessToken(token.getAccessToken());
     }

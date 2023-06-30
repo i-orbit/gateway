@@ -12,6 +12,14 @@
     <version>1.0.0</version>
     <name>gateway</name>
 
+    <properties>
+        <env.nacos.server>192.168.26.195:8848</env.nacos.server>
+        <env.profile>dev</env.profile>
+        <env.harbor>harbor.inmaytide.com</env.harbor>
+        <env.harbor.user>admin</env.harbor.user>
+        <env.harbor.pass>zaq1@WSX</env.harbor.pass>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
@@ -97,5 +105,109 @@
             </resource>
         </resources>
     </build>
+
+    <profiles>
+        <profile>
+            <id>docker</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <id>docker-build</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>docker</executable>
+                                    <workingDirectory>${project.basedir}</workingDirectory>
+                                    <arguments>
+                                        <argument>build</argument>
+                                        <argument>.</argument>
+                                        <argument>-f</argument>
+                                        <argument>docker/Dockerfile</argument>
+                                        <argument>-t</argument>
+                                        <argument>orbit/${project.name}:${project.version}</argument>
+                                        <argument>--build-arg</argument>
+                                        <argument>NACOS_SERVER=${env.nacos.server}</argument>
+                                        <argument>--build-arg</argument>
+                                        <argument>PROFILE=${env.profile}</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>harbor</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <id>harbor-tag</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>docker</executable>
+                                    <workingDirectory>${project.basedir}</workingDirectory>
+                                    <arguments>
+                                        <argument>tag</argument>
+                                        <argument>orbit/${project.name}:${project.version}</argument>
+                                        <argument>${env.harbor}/orbit/${project.name}:${project.version}</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>harbor-login</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>docker</executable>
+                                    <workingDirectory>${project.basedir}</workingDirectory>
+                                    <arguments>
+                                        <argument>login</argument>
+                                        <argument>${env.harbor}</argument>
+                                        <argument>-u</argument>
+                                        <argument>${env.harbor.user}</argument>
+                                        <argument>--password</argument>
+                                        <argument>${env.harbor.pass}</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>harbor-push</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>docker</executable>
+                                    <workingDirectory>${project.basedir}</workingDirectory>
+                                    <arguments>
+                                        <argument>push</argument>
+                                        <argument>${env.harbor}/orbit/${project.name}:${project.version}</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>

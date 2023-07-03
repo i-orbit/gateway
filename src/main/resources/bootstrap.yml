@@ -9,6 +9,10 @@ spring:
     allow-circular-references: true
     allow-bean-definition-overriding: true
   cloud:
+    gateway:
+      predicate:
+        weight:
+          enabled: false
     nacos:
       discovery:
         server-addr: 192.168.26.195:8848
@@ -17,15 +21,11 @@ spring:
         password: nacos
       config:
         server-addr: 192.168.26.195:8848
+        namespace: orbit-${spring.profiles.active}
         username: nacos
         password: nacos
-        namespace: orbit-${spring.profiles.active}
         file-extension: yaml
         extension-configs:
           - common.yaml
           - redis.yaml
           - rabbitmq.yaml
-    gateway:
-      predicate:
-        weight:
-          enabled: false

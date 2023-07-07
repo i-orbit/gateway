@@ -4,6 +4,7 @@ import com.inmaytide.exception.translator.ThrowableTranslator;
 import com.inmaytide.exception.web.AccessDeniedException;
 import com.inmaytide.exception.web.BadCredentialsException;
 import com.inmaytide.exception.web.HttpResponseException;
+import com.inmaytide.exception.web.ServiceUnavailableException;
 import com.inmaytide.exception.web.domain.DefaultResponse;
 import com.inmaytide.exception.web.translator.FeignExceptionTranslator;
 import com.inmaytide.orbit.commons.consts.HttpHeaderNames;
@@ -106,21 +107,16 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
             return token;
         } catch (Exception e) {
             onFailed(request, credentials, e);
-            if (e instanceof FeignException) {
-                if (e instanceof FeignException.ServiceUnavailable) {
+            new FeignExceptionTranslator().translate(e).ifPresent(ex -> {
+                // 如果账号不存在或密码错误, 根据安全管理要求整合错误信息模糊具体的错误提醒
+                if (Objects.equals(ex.getCode(), "0x00100002") || Objects.equals(ex.getCode(), "0x00100003")) {
+                    throw new BadCredentialsException(ErrorCode.E_0x00200010);
+                }
+                // 账号已登录或认证服务不可用不累加异常次数
+                if (Objects.equals(ex.getCode(), "0x00100001") || ex instanceof ServiceUnavailableException) {
                     throw e;
                 }
-                new FeignExceptionTranslator().translate(e).ifPresent(ex -> {
-                    // 如果账号不存在或密码错误, 根据安全管理要求整合错误信息模糊具体的错误提醒
-                    if (Objects.equals(ex.getCode(), "0x00100002") || Objects.equals(ex.getCode(), "0x00100003")) {
-                        throw new BadCredentialsException(ErrorCode.E_0x00200010);
-                    }
-                    // 账号已登录或认证服务不可用不累加异常次数
-                    if (Objects.equals(ex.getCode(), "0x00100001")) {
-                        throw e;
-                    }
-                });
-            }
+            });
             accumulateFailuresNumber(credentials.getUsername());
             throw e;
         }

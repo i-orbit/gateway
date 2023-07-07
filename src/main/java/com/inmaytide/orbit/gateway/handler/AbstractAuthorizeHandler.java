@@ -8,7 +8,6 @@ import com.inmaytide.exception.web.ServiceUnavailableException;
 import com.inmaytide.exception.web.domain.DefaultResponse;
 import com.inmaytide.orbit.commons.consts.HttpHeaderNames;
 import com.inmaytide.orbit.commons.consts.Is;
-import com.inmaytide.orbit.commons.consts.Platforms;
 import com.inmaytide.orbit.commons.domain.Oauth2Token;
 import com.inmaytide.orbit.commons.log.OperationLogMessageProducer;
 import com.inmaytide.orbit.commons.log.domain.OperationLog;
@@ -21,6 +20,7 @@ import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.web.reactive.function.server.ServerRequest;
 
 import java.time.Instant;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -70,7 +70,9 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
     }
 
     protected Integer getFailuresNumber(String username) {
-        return NumberUtils.createInteger(ValueCaches.get(CACHE_NAME_LOGIN_FAILURE_NUMBERS, username).orElse("0"));
+        return ValueCaches.get(CACHE_NAME_LOGIN_FAILURE_NUMBERS, username)
+                .map(NumberUtils::createInteger)
+                .orElse(0);
     }
 
     protected void accumulateFailuresNumber(String username) {
@@ -102,10 +104,18 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
             setAccessTokenCookie(request, token);
             return token;
         } catch (Exception e) {
-            if (!(e instanceof ServiceUnavailableException)) {
-                accumulateFailuresNumber(credentials.getUsername());
-            }
             onFailed(request, credentials, e);
+            if (e instanceof HttpResponseException ex) {
+                // 如果账号不存在或密码错误, 根据安全管理要求整合错误信息模糊具体的错误提醒
+                if (Objects.equals(ex.getCode(), "0x00100002") || Objects.equals(ex.getCode(), "0x00100003")) {
+                    throw new BadCredentialsException(ErrorCode.E_0x00200010);
+                }
+                // 账号已登录或认证服务不可用不累加异常次数
+                if (Objects.equals(ex.getCode(), "0x00100001") || e instanceof ServiceUnavailableException) {
+                    throw e;
+                }
+            }
+            accumulateFailuresNumber(credentials.getUsername());
             throw e;
         }
     }

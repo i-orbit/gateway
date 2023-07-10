@@ -70,7 +70,7 @@ public class Credentials implements Serializable {
 
     public String getPassword() {
         try {
-            return CodecUtils.decrypt(password, CodecUtils.RSA_PUBLIC_KEY);
+            return CodecUtils.decrypt(password, CodecUtils.RSA_PRIVATE_KEY);
         } catch (Exception e) {
             if (log.isDebugEnabled()) {
                 log.error("Password of User{username = {}} decryption failed, Cause by: ", getPassword(), e);

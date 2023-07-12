@@ -59,6 +59,11 @@ public class WebConfiguration {
                     beanClass = LoginWithUsernameAndPasswordHandler.class,
                     beanMethod = "loginWithUsernameAndPassword"
             ),
+            @RouterOperation(
+                    path = "/authorize/captcha",
+                    beanClass = CaptchaHandler.class,
+                    beanMethod = "getCaptcha"
+            ),
     })
     public RouterFunction<?> routers() {
         return route(RequestPredicates.POST("/authorize/login"), loginWithUsernameAndPasswordHandler::loginWithUsernameAndPassword)

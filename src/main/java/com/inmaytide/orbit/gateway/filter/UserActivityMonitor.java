@@ -42,7 +42,7 @@ public class UserActivityMonitor extends AbstractHandler implements GlobalFilter
         // 获取登录token, 如果拿到token后, 尝试生成用户在线记录写入缓存
         String token = getAccessToken(exchange.getRequest());
         if (StringUtils.isNotBlank(token)) {
-            new Thread(() -> setOnlineCache(exchange, token)).start();
+            Thread.ofVirtual().start(() -> setOnlineCache(exchange, token));
         }
         // 写入接口调用链标识
         ServerHttpRequest request = exchange.getRequest().mutate().header(HttpHeaderNames.CALL_CHAIN, CodecUtils.generateUUID()).build();

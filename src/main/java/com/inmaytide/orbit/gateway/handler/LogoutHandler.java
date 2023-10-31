@@ -3,7 +3,6 @@ package com.inmaytide.orbit.gateway.handler;
 import com.inmaytide.exception.translator.ThrowableTranslator;
 import com.inmaytide.exception.web.HttpResponseException;
 import com.inmaytide.orbit.commons.log.OperationLogMessageProducer;
-import com.inmaytide.orbit.commons.service.uaa.AuthorizationService;
 import com.inmaytide.orbit.commons.service.uaa.UserService;
 import com.inmaytide.orbit.gateway.configuration.ApplicationProperties;
 import org.apache.commons.lang3.StringUtils;

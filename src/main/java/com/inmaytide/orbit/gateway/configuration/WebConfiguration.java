@@ -1,22 +1,13 @@
 package com.inmaytide.orbit.gateway.configuration;
 
-import com.inmaytide.orbit.gateway.domain.AccessToken;
-import com.inmaytide.orbit.gateway.domain.Credentials;
 import com.inmaytide.orbit.gateway.handler.CaptchaHandler;
 import com.inmaytide.orbit.gateway.handler.LoginWithScanCodeHandler;
 import com.inmaytide.orbit.gateway.handler.LoginWithUsernameAndPasswordHandler;
 import com.inmaytide.orbit.gateway.handler.LogoutHandler;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springdoc.core.annotations.RouterOperation;
 import org.springdoc.core.annotations.RouterOperations;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.reactive.HandlerMapping;
 import org.springframework.web.reactive.config.EnableWebFlux;
 import org.springframework.web.reactive.function.server.RequestPredicates;

@@ -6,8 +6,6 @@ import com.inmaytide.orbit.commons.consts.CacheNames;
 import com.inmaytide.orbit.commons.consts.HttpHeaderNames;
 import com.inmaytide.orbit.commons.consts.Marks;
 import com.inmaytide.orbit.commons.domain.Oauth2Token;
-import com.inmaytide.orbit.commons.domain.OrbitClientDetails;
-import com.inmaytide.orbit.commons.service.uaa.AuthorizationService;
 import com.inmaytide.orbit.commons.utils.ValueCaches;
 import com.inmaytide.orbit.gateway.configuration.ErrorCode;
 import com.inmaytide.orbit.gateway.handler.AbstractHandler;

@@ -6,7 +6,6 @@ import com.inmaytide.exception.web.BadCredentialsException;
 import com.inmaytide.exception.web.HttpResponseException;
 import com.inmaytide.exception.web.ServiceUnavailableException;
 import com.inmaytide.exception.web.domain.DefaultResponse;
-import com.inmaytide.exception.web.translator.FeignExceptionTranslator;
 import com.inmaytide.orbit.commons.consts.HttpHeaderNames;
 import com.inmaytide.orbit.commons.consts.Is;
 import com.inmaytide.orbit.commons.domain.Oauth2Token;
@@ -17,7 +16,6 @@ import com.inmaytide.orbit.commons.utils.ValueCaches;
 import com.inmaytide.orbit.gateway.configuration.ApplicationProperties;
 import com.inmaytide.orbit.gateway.configuration.ErrorCode;
 import com.inmaytide.orbit.gateway.domain.Credentials;
-import feign.FeignException;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.web.reactive.function.server.ServerRequest;
 
@@ -55,6 +53,9 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
         this.captchaHandler = captchaHandler;
     }
 
+    /**
+     * 验证访问来源的黑白名单
+     */
     protected void assertAllowAccessSource(ServerRequest request, Credentials credentials) {
         String ipAddress = getClientIpAddress(request);
         String geolocation = searchIpAddressGeolocation(ipAddress);
@@ -68,6 +69,25 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
             log.setResponse("受限地区访问");
             producer.produce(log);
             throw new AccessDeniedException(ErrorCode.E_0x00200002);
+        }
+    }
+
+    /**
+     * 检查登录尝试的失败次数
+     * <ol>
+     *     <li>大于等于 {@linkplain AbstractAuthorizeHandler#MAXIMUM_NUMBER_OF_FAILED_LOGIN_ATTEMPTS} 时禁止登录</li>
+     *     <li>大于等于 <code>1</code> 时需要强制验证验证码</li>
+     * </ol>
+     */
+    protected void checkFailureNumbers(Credentials credentials) {
+        int failuresNumber = getFailuresNumber(credentials.getUsername());
+        if (failuresNumber >= MAXIMUM_NUMBER_OF_FAILED_LOGIN_ATTEMPTS) {
+            throw new AccessDeniedException(ErrorCode.E_0x00200003, String.valueOf(MAXIMUM_NUMBER_OF_FAILED_LOGIN_ATTEMPTS), String.valueOf(EXCEED_NUMBER_LOCK_TIMES_IN_MINUTE));
+        }
+        if (failuresNumber >= 1) {
+            if (!captchaHandler.validate(credentials.getCaptchaKey(), credentials.getCaptchaValue())) {
+                throw new BadCredentialsException(ErrorCode.E_0x00200007);
+            }
         }
     }
 
@@ -85,17 +105,9 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
     protected Oauth2Token login(ServerRequest request, Credentials credentials) {
         credentials.validate();
         getLogger().debug("Received login request from user \"{}\"", credentials.getUsername());
-        assertAllowAccessSource(request, credentials);
         try {
-            int failuresNumber = getFailuresNumber(credentials.getUsername());
-            if (failuresNumber >= MAXIMUM_NUMBER_OF_FAILED_LOGIN_ATTEMPTS) {
-                throw new AccessDeniedException(ErrorCode.E_0x00200003, String.valueOf(MAXIMUM_NUMBER_OF_FAILED_LOGIN_ATTEMPTS), String.valueOf(EXCEED_NUMBER_LOCK_TIMES_IN_MINUTE));
-            }
-            if (failuresNumber >= 1) {
-                if (!captchaHandler.validate(credentials.getCaptchaKey(), credentials.getCaptchaValue())) {
-                    throw new BadCredentialsException(ErrorCode.E_0x00200007);
-                }
-            }
+            assertAllowAccessSource(request, credentials);
+            checkFailureNumbers(credentials);
             Oauth2Token token = authorizationService.getToken(
                     credentials.getUsername(),
                     credentials.getPassword(),
@@ -107,7 +119,7 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
             return token;
         } catch (Exception e) {
             onFailed(request, credentials, e);
-            new FeignExceptionTranslator().translate(e).ifPresent(ex -> {
+            throwableTranslator.translate(e).ifPresent(ex -> {
                 // 如果账号不存在或密码错误, 根据安全管理要求整合错误信息模糊具体的错误提醒
                 if (Objects.equals(ex.getCode(), "0x00100002") || Objects.equals(ex.getCode(), "0x00100003")) {
                     throw new BadCredentialsException(ErrorCode.E_0x00200010);

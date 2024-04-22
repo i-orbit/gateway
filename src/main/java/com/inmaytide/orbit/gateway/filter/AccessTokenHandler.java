@@ -1,7 +1,6 @@
 package com.inmaytide.orbit.gateway.filter;
 
-import com.inmaytide.orbit.commons.consts.HttpHeaderNames;
-import com.inmaytide.orbit.commons.consts.ParameterNames;
+import com.inmaytide.orbit.commons.constants.Constants;
 import com.inmaytide.orbit.gateway.handler.AbstractHandler;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -28,25 +27,27 @@ import java.util.Collections;
  * fetch the AccessToken from the request parameters or cookies. Further enhancements will be explored to optimize
  * this functionality once a better solution is discovered.
  *
+ * @deprecated <b>2024/04/22: </b> Transfer to overriding "OAuth2TokenIntrospectionAuthenticationConverter" in uaa module
  * @author luomiao
  * @since 2021/4/25
  */
-@Component
+//@Component
+@Deprecated
 public class AccessTokenHandler extends AbstractHandler implements GlobalFilter, Ordered {
 
     private final static Logger LOG = LoggerFactory.getLogger(AccessTokenHandler.class);
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        String token = exchange.getRequest().getHeaders().getFirst(HttpHeaderNames.AUTHORIZATION);
+        String token = exchange.getRequest().getHeaders().getFirst(Constants.HttpHeaderNames.AUTHORIZATION);
         if (StringUtils.isBlank(token)) {
             token = getAccessToken(exchange.getRequest());
             if (StringUtils.isNotBlank(token)) {
                 URI uri = exchange.getRequest().getURI();
-                uri = UriComponentsBuilder.fromUri(uri).replaceQueryParam(ParameterNames.ACCESS_TOKEN, Collections.emptyList()).build().toUri();
+                uri = UriComponentsBuilder.fromUri(uri).replaceQueryParam(Constants.RequestParameters.ACCESS_TOKEN, Collections.emptyList()).build().toUri();
                 ServerHttpRequest request = exchange.getRequest()
                         .mutate()
-                        .header(HttpHeaderNames.AUTHORIZATION, HttpHeaderNames.AUTHORIZATION_PREFIX + token)
+                        .header(Constants.HttpHeaderNames.AUTHORIZATION, Constants.HttpHeaderNames.AUTHORIZATION_PREFIX + token)
                         .uri(uri).build();
                 exchange = exchange.mutate().request(request).build();
             }
@@ -56,7 +57,7 @@ public class AccessTokenHandler extends AbstractHandler implements GlobalFilter,
 
     @Override
     public int getOrder() {
-        return -15;
+        return -1000;
     }
 
     @Override

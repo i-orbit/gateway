@@ -111,7 +111,7 @@ public class RenewAccessTokenHandler extends AbstractHandler implements GlobalFi
 
     @Override
     public int getOrder() {
-        return Integer.MAX_VALUE;
+        return Integer.MIN_VALUE;
     }
 
     private Optional<String> getRefreshToken(ServerWebExchange exchange) {

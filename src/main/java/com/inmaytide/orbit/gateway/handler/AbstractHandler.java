@@ -1,8 +1,6 @@
 package com.inmaytide.orbit.gateway.handler;
 
-import com.inmaytide.orbit.commons.consts.HttpHeaderNames;
-import com.inmaytide.orbit.commons.consts.Marks;
-import com.inmaytide.orbit.commons.consts.ParameterNames;
+import com.inmaytide.orbit.commons.constants.Constants;
 import com.inmaytide.orbit.commons.domain.Oauth2Token;
 import com.inmaytide.orbit.commons.service.uaa.AuthorizationService;
 import com.inmaytide.orbit.commons.utils.HttpUtils;
@@ -34,7 +32,7 @@ public abstract class AbstractHandler {
     private Searcher searcher;
 
     private ResponseCookie buildAccessTokenCookie(Oauth2Token token) {
-        return ResponseCookie.from(ParameterNames.ACCESS_TOKEN)
+        return ResponseCookie.from(Constants.RequestParameters.ACCESS_TOKEN)
                 .httpOnly(true)
                 .path("/")
                 .maxAge(token.getExpiresIn())
@@ -42,12 +40,23 @@ public abstract class AbstractHandler {
                 .build();
     }
 
-    protected void setAccessTokenCookie(ServerRequest request, Oauth2Token token) {
-        request.exchange().getResponse().addCookie(buildAccessTokenCookie(token));
+    private ResponseCookie buildRefreshTokenCookie(Oauth2Token token) {
+        return ResponseCookie.from(Constants.RequestParameters.REFRESH_TOKEN)
+                .httpOnly(true)
+                .path("/")
+                .maxAge(token.getExpiresIn())
+                .value(token.getRefreshToken())
+                .build();
     }
 
-    protected void setAccessTokenCookie(ServerWebExchange exchange, Oauth2Token token) {
+    protected void setTokenCookies(ServerRequest request, Oauth2Token token) {
+        request.exchange().getResponse().addCookie(buildAccessTokenCookie(token));
+        request.exchange().getResponse().addCookie(buildRefreshTokenCookie(token));
+    }
+
+    protected void setTokenCookies(ServerWebExchange exchange, Oauth2Token token) {
         exchange.getResponse().addCookie(buildAccessTokenCookie(token));
+        exchange.getResponse().addCookie(buildRefreshTokenCookie(token));
     }
 
     protected String getClientIpAddress(ServerRequest request) {
@@ -71,41 +80,41 @@ public abstract class AbstractHandler {
     }
 
     protected String getAccessToken(ServerRequest request) {
-        String token = request.headers().firstHeader(HttpHeaderNames.AUTHORIZATION);
+        String token = request.headers().firstHeader(Constants.HttpHeaderNames.AUTHORIZATION);
         if (StringUtils.isBlank(token)) {
-            HttpCookie cookie = request.cookies().getFirst(ParameterNames.ACCESS_TOKEN);
+            HttpCookie cookie = request.cookies().getFirst(Constants.RequestParameters.ACCESS_TOKEN);
             if (cookie != null) {
                 token = cookie.getValue();
             }
         }
         if (StringUtils.isBlank(token)) {
-            token = request.queryParam(ParameterNames.ACCESS_TOKEN).orElse(StringUtils.EMPTY);
+            token = request.queryParam(Constants.RequestParameters.ACCESS_TOKEN).orElse(StringUtils.EMPTY);
         }
         if (StringUtils.isBlank(token)) {
             getLogger().debug("There is no access token in this request");
             return StringUtils.EMPTY;
         }
-        token = token.replace(HttpHeaderNames.AUTHORIZATION_PREFIX, "");
+        token = token.replace(Constants.HttpHeaderNames.AUTHORIZATION_PREFIX, "");
         getLogger().debug("Received access token from the request is \"{}\"", token);
         return token;
     }
 
     protected String getAccessToken(ServerHttpRequest request) {
-        String token = request.getHeaders().getFirst(HttpHeaderNames.AUTHORIZATION);
+        String token = request.getHeaders().getFirst(Constants.HttpHeaderNames.AUTHORIZATION);
         if (StringUtils.isBlank(token)) {
-            HttpCookie cookie = request.getCookies().getFirst(ParameterNames.ACCESS_TOKEN);
+            HttpCookie cookie = request.getCookies().getFirst(Constants.RequestParameters.ACCESS_TOKEN);
             if (cookie != null) {
                 token = cookie.getValue();
             }
         }
         if (StringUtils.isBlank(token)) {
-            token = request.getQueryParams().getFirst(ParameterNames.ACCESS_TOKEN);
+            token = request.getQueryParams().getFirst(Constants.RequestParameters.ACCESS_TOKEN);
         }
         if (StringUtils.isBlank(token)) {
             getLogger().debug("There is no access token in this request");
             return StringUtils.EMPTY;
         }
-        token = token.replace(HttpHeaderNames.AUTHORIZATION_PREFIX, "");
+        token = token.replace(Constants.HttpHeaderNames.AUTHORIZATION_PREFIX, "");
         getLogger().debug("Received access token from the request is \"{}\"", token);
         return token;
     }
@@ -113,18 +122,18 @@ public abstract class AbstractHandler {
     protected String searchIpAddressGeolocation(@Nullable String ipAddress) {
         if (StringUtils.isNotBlank(ipAddress)) {
             if (StringUtils.equalsIgnoreCase(ipAddress, "localhost") || "127.0.0.1".equals(ipAddress)) {
-                return Marks.LOCAL.getValue();
+                return Constants.Markers.LOCAL;
             }
             try {
                 String region = searcher.search(ipAddress);
                 if (StringUtils.isBlank(region)) {
-                    return Marks.NOT_APPLICABLE.getValue();
+                    return Constants.Markers.NOT_APPLICABLE;
                 }
                 String[] regions = region.split("\\|");
                 String country = regions[0];
                 for (int i = regions.length - 2; i >= 0; i--) {
                     if ("内网IP".equalsIgnoreCase(regions[i])) {
-                        return Marks.LAN.getValue();
+                        return Constants.Markers.LAN;
                     }
                     if (!"0".equals(regions[i])) {
                         return i != 0 ? country + "-" + regions[i] : regions[i];
@@ -138,7 +147,7 @@ public abstract class AbstractHandler {
                 }
             }
         }
-        return Marks.NOT_APPLICABLE.getValue();
+        return Constants.Markers.NOT_APPLICABLE;
     }
 
     protected abstract Logger getLogger();

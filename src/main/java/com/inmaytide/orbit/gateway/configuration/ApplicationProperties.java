@@ -1,6 +1,6 @@
 package com.inmaytide.orbit.gateway.configuration;
 
-import com.inmaytide.orbit.commons.configuration.CommonProperties;
+import com.inmaytide.orbit.commons.configuration.GlobalProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -12,7 +12,7 @@ import java.util.List;
  */
 @Component
 @ConfigurationProperties(prefix = "application")
-public class ApplicationProperties extends CommonProperties {
+public class ApplicationProperties extends GlobalProperties {
 
     private List<String> disabledAccessSources;
 

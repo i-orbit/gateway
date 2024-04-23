@@ -1,7 +1,6 @@
 package com.inmaytide.orbit.gateway.handler;
 
-import com.inmaytide.exception.translator.ThrowableTranslator;
-import com.inmaytide.exception.web.HttpResponseException;
+import com.inmaytide.exception.web.translator.HttpExceptionTranslatorDelegator;
 import com.inmaytide.orbit.commons.log.OperationLogMessageProducer;
 import com.inmaytide.orbit.commons.service.uaa.UserService;
 import com.inmaytide.orbit.gateway.configuration.ApplicationProperties;
@@ -22,7 +21,7 @@ public class LogoutHandler extends AbstractAuthorizeHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(LogoutHandler.class);
 
-    protected LogoutHandler(OperationLogMessageProducer producer, ApplicationProperties properties, ThrowableTranslator<HttpResponseException> throwableTranslator, UserService userService, CaptchaHandler captchaHandler) {
+    protected LogoutHandler(OperationLogMessageProducer producer, ApplicationProperties properties, HttpExceptionTranslatorDelegator throwableTranslator, UserService userService, CaptchaHandler captchaHandler) {
         super(producer, properties, throwableTranslator, userService, captchaHandler);
     }
 

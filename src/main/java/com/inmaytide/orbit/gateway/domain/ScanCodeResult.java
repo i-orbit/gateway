@@ -31,6 +31,8 @@ public class ScanCodeResult implements Serializable {
     @Schema(title = "验证成功后返回的 AccessToken")
     private String accessToken;
 
+    private String refreshToken;
+
     public static ScanCodeResult withCredentials(ScanCodeCredentials credentials) {
         ScanCodeResult res = new ScanCodeResult();
         res.setSessionId(credentials.getSessionId());
@@ -76,6 +78,14 @@ public class ScanCodeResult implements Serializable {
 
     public void setAccessToken(String accessToken) {
         this.accessToken = accessToken;
+    }
+
+    public String getRefreshToken() {
+        return refreshToken;
+    }
+
+    public void setRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
     }
 
     public ScanCodeResult failure(ErrorCode errorCode) {

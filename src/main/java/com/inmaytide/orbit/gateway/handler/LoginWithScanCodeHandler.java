@@ -1,10 +1,8 @@
 package com.inmaytide.orbit.gateway.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.inmaytide.exception.translator.ThrowableTranslator;
-import com.inmaytide.exception.web.HttpResponseException;
+import com.inmaytide.exception.web.translator.HttpExceptionTranslatorDelegator;
 import com.inmaytide.orbit.commons.log.OperationLogMessageProducer;
-import com.inmaytide.orbit.commons.service.uaa.AuthorizationService;
 import com.inmaytide.orbit.commons.service.uaa.UserService;
 import com.inmaytide.orbit.commons.utils.CodecUtils;
 import com.inmaytide.orbit.commons.utils.ValueCaches;
@@ -59,7 +57,7 @@ public class LoginWithScanCodeHandler extends AbstractAuthorizeHandler implement
 
     private final ObjectMapper objectMapper;
 
-    protected LoginWithScanCodeHandler(OperationLogMessageProducer producer, ApplicationProperties properties, ThrowableTranslator<HttpResponseException> throwableTranslator, UserService userService, CaptchaHandler captchaHandler, RabbitProducer rabbitProducer, ObjectMapper objectMapper) {
+    protected LoginWithScanCodeHandler(OperationLogMessageProducer producer, ApplicationProperties properties, HttpExceptionTranslatorDelegator throwableTranslator, UserService userService, CaptchaHandler captchaHandler, RabbitProducer rabbitProducer, ObjectMapper objectMapper) {
         super(producer, properties, throwableTranslator, userService, captchaHandler);
         this.rabbitProducer = rabbitProducer;
         this.objectMapper = objectMapper;
@@ -80,7 +78,7 @@ public class LoginWithScanCodeHandler extends AbstractAuthorizeHandler implement
     public Mono<ServerResponse> validateScanCode(@NonNull ServerRequest request) {
         return request.bodyToMono(ScanCodeCredentials.class)
                 .map(this::validateScanCode)
-                .doOnNext(res -> rabbitProducer.sendRealMessage(res, ROUTE_KEY_SCAN_CODE_LOGIN_RES))
+                .doOnNext(res -> rabbitProducer.sendMessage(res, ROUTE_KEY_SCAN_CODE_LOGIN_RES))
                 .flatMap(res -> ok().body(BodyInserters.fromValue(res)));
     }
 

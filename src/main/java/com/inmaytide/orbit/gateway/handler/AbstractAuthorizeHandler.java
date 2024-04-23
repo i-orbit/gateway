@@ -1,14 +1,14 @@
 package com.inmaytide.orbit.gateway.handler;
 
-import com.inmaytide.exception.translator.ThrowableTranslator;
 import com.inmaytide.exception.web.AccessDeniedException;
 import com.inmaytide.exception.web.BadCredentialsException;
-import com.inmaytide.exception.web.HttpResponseException;
 import com.inmaytide.exception.web.ServiceUnavailableException;
 import com.inmaytide.exception.web.domain.DefaultResponse;
-import com.inmaytide.orbit.commons.consts.HttpHeaderNames;
-import com.inmaytide.orbit.commons.consts.Is;
+import com.inmaytide.exception.web.translator.HttpExceptionTranslatorDelegator;
+import com.inmaytide.orbit.commons.constants.Bool;
+import com.inmaytide.orbit.commons.constants.Constants;
 import com.inmaytide.orbit.commons.domain.Oauth2Token;
+import com.inmaytide.orbit.commons.domain.dto.params.LoginParameters;
 import com.inmaytide.orbit.commons.log.OperationLogMessageProducer;
 import com.inmaytide.orbit.commons.log.domain.OperationLog;
 import com.inmaytide.orbit.commons.service.uaa.UserService;
@@ -39,13 +39,13 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
 
     protected final ApplicationProperties properties;
 
-    protected final ThrowableTranslator<HttpResponseException> throwableTranslator;
+    protected final HttpExceptionTranslatorDelegator throwableTranslator;
 
     protected final UserService userService;
 
     private final CaptchaHandler captchaHandler;
 
-    protected AbstractAuthorizeHandler(OperationLogMessageProducer producer, ApplicationProperties properties, ThrowableTranslator<HttpResponseException> throwableTranslator, UserService userService, CaptchaHandler captchaHandler) {
+    protected AbstractAuthorizeHandler(OperationLogMessageProducer producer, ApplicationProperties properties, HttpExceptionTranslatorDelegator throwableTranslator, UserService userService, CaptchaHandler captchaHandler) {
         this.producer = producer;
         this.properties = properties;
         this.throwableTranslator = throwableTranslator;
@@ -64,7 +64,7 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
         if ((properties.getDisabledAccessSources() != null && properties.getDisabledAccessSources().stream().anyMatch(e -> ipAddress.contains(e) || geolocation.contains(e)))
                 || (properties.getEnabledAccessSources() != null && properties.getEnabledAccessSources().stream().noneMatch(geolocation::contains))) {
             OperationLog log = buildOperationLog(request, credentials);
-            log.setResult(Is.N);
+            log.setResult(Bool.N);
             log.setArguments(credentials.toString());
             log.setResponse("受限地区访问");
             producer.produce(log);
@@ -108,14 +108,14 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
         try {
             assertAllowAccessSource(request, credentials);
             checkFailureNumbers(credentials);
-            Oauth2Token token = authorizationService.getToken(
-                    credentials.getUsername(),
-                    credentials.getPassword(),
-                    credentials.getPlatform(),
-                    credentials.getForcedReplacement()
-            );
+            LoginParameters params = new LoginParameters();
+            params.setLoginName(credentials.getUsername());
+            params.setPassword(credentials.getPassword());
+            params.setPlatform(credentials.getPlatform());
+            params.setForcedReplacement(credentials.getForcedReplacement());
+            Oauth2Token token = authorizationService.getToken(params);
             onSuccess(request, credentials);
-            setAccessTokenCookie(request, token);
+            setTokenCookies(request, token);
             return token;
         } catch (Exception e) {
             onFailed(request, credentials, e);
@@ -137,14 +137,14 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
     private void onSuccess(ServerRequest request, Credentials credentials) {
         ValueCaches.delete(CACHE_NAME_LOGIN_FAILURE_NUMBERS, credentials.getUsername());
         OperationLog log = buildOperationLog(request, credentials);
-        log.setResult(Is.Y);
+        log.setResult(Bool.Y);
         log.setArguments(credentials.toString());
         producer.produce(log);
     }
 
     private void onFailed(ServerRequest request, Credentials credentials, Throwable e) {
         OperationLog log = buildOperationLog(request, credentials);
-        log.setResult(Is.N);
+        log.setResult(Bool.N);
         log.setArguments(credentials.toString());
         throwableTranslator
                 .translate(e)
@@ -157,15 +157,15 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
         log.setOperationTime(Instant.now());
         log.setDescription("用户名密码登录");
         log.setBusiness("用户登录");
-        log.setChain(request.headers().firstHeader(HttpHeaderNames.CALL_CHAIN));
+        log.setChain(request.headers().firstHeader(Constants.HttpHeaderNames.CALL_CHAIN));
         log.setPlatform(credentials.getPlatform().name());
         log.setPath(request.path());
         log.setHttpMethod(request.method().name());
-        log.setClientDescription(request.headers().firstHeader(HttpHeaderNames.USER_AGENT));
+        log.setClientDescription(request.headers().firstHeader(Constants.HttpHeaderNames.USER_AGENT));
         log.setIpAddress(getClientIpAddress(request));
         userService.getUserByUsername(credentials.getUsername()).ifPresent(user -> {
             log.setOperator(user.getId());
-            log.setTenantId(user.getTenantId());
+            log.setTenantId(user.getTenant());
         });
         return log;
     }

@@ -2,9 +2,7 @@ package com.inmaytide.orbit.gateway.filter;
 
 import com.inmaytide.exception.web.BadCredentialsException;
 import com.inmaytide.exception.web.UnauthorizedException;
-import com.inmaytide.orbit.commons.consts.CacheNames;
-import com.inmaytide.orbit.commons.consts.HttpHeaderNames;
-import com.inmaytide.orbit.commons.consts.Marks;
+import com.inmaytide.orbit.commons.constants.Constants;
 import com.inmaytide.orbit.commons.domain.Oauth2Token;
 import com.inmaytide.orbit.commons.utils.ValueCaches;
 import com.inmaytide.orbit.gateway.configuration.ErrorCode;
@@ -15,12 +13,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
+import org.springframework.http.HttpCookie;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -45,10 +45,11 @@ public class RenewAccessTokenHandler extends AbstractHandler implements GlobalFi
      */
     private static final long TOKEN_TEMPORARY_STORE_MILLISECONDS = 60 * 1000;
 
+
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        wasForciblyCancelled(exchange);
         String accessToken = getAccessToken(exchange.getRequest());
-        wasForciblyCancelled(accessToken);
         if (StringUtils.isNotBlank(accessToken) && requireRenew(accessToken)) {
             log.debug("The access token needs to be refreshed");
             synchronized (accessToken.intern()) {
@@ -58,11 +59,13 @@ public class RenewAccessTokenHandler extends AbstractHandler implements GlobalFi
         return chain.filter(exchange);
     }
 
-    private void wasForciblyCancelled(String accessToken) {
-        if (Marks.USER_FORCE_LOGOUT.getValue().equals(getRefreshToken(accessToken))) {
-            log.debug("The access token was forcibly cancelled by other users");
-            throw new UnauthorizedException(ErrorCode.E_0x00200001);
-        }
+    private void wasForciblyCancelled(ServerWebExchange exchange) {
+        getRefreshToken(exchange)
+                .flatMap(refreshToken -> ValueCaches.get(Constants.CacheNames.DISABLED_REFRESH_TOKEN, refreshToken))
+                .ifPresent(value -> {
+                    log.debug("The access token was forcibly cancelled by other users");
+                    throw new UnauthorizedException(ErrorCode.E_0x00200001);
+                });
     }
 
     private Oauth2Token refreshToken(@Nullable String refreshToken) {
@@ -74,25 +77,28 @@ public class RenewAccessTokenHandler extends AbstractHandler implements GlobalFi
 
     private void doCache(final String key, final Oauth2Token value) {
         // 将新token与旧token放入缓存绑定
-        ValueCaches.put(CacheNames.TOKEN_TEMPORARY_STORE, key, value.getAccessToken(), TOKEN_TEMPORARY_STORE_MILLISECONDS, TimeUnit.MILLISECONDS);
+        ValueCaches.put(Constants.CacheNames.TOKEN_TEMPORARY_STORE, key, value.getAccessToken(), TOKEN_TEMPORARY_STORE_MILLISECONDS, TimeUnit.MILLISECONDS);
     }
 
     private ServerWebExchange renewToken(ServerWebExchange exchange, String accessToken) {
         try {
-            String refreshedToken = ValueCaches.get(CacheNames.TOKEN_TEMPORARY_STORE, accessToken).orElse(null);
+            String refreshedToken = ValueCaches.get(Constants.CacheNames.TOKEN_TEMPORARY_STORE, accessToken).orElse(null);
             if (refreshedToken != null) {
                 log.debug("The access token is refreshed within {}ms and a new access token is read from the cache", TOKEN_TEMPORARY_STORE_MILLISECONDS);
             } else {
                 log.debug("No new access token is read from the cache, request the remote api to refresh the access token");
-                String refreshToken = getRefreshToken(accessToken);
-                log.debug("Refresh Token value is \"{}\"", refreshToken);
-                Oauth2Token token = refreshToken(refreshToken);
+                Optional<String> refreshToken = getRefreshToken(exchange);
+                if (refreshToken.isEmpty()) {
+                    return exchange;
+                }
+                log.debug("Refresh Token value is \"{}\"", refreshToken.get());
+                Oauth2Token token = refreshToken(refreshToken.get());
                 log.debug("The refresh result is {}", token);
                 refreshedToken = token.getAccessToken();
                 doCache(accessToken, token);
-                setAccessTokenCookie(exchange, token);
+                setTokenCookies(exchange, token);
             }
-            ServerHttpRequest request = exchange.getRequest().mutate().header(HttpHeaderNames.AUTHORIZATION, HttpHeaderNames.AUTHORIZATION_PREFIX + refreshedToken).build();
+            ServerHttpRequest request = exchange.getRequest().mutate().header(Constants.HttpHeaderNames.AUTHORIZATION, Constants.HttpHeaderNames.AUTHORIZATION_PREFIX + refreshedToken).build();
             return exchange.mutate().request(request).build();
         } catch (Exception e) {
             log.error("Failed to refresh token, Cause by: ", e);
@@ -105,16 +111,16 @@ public class RenewAccessTokenHandler extends AbstractHandler implements GlobalFi
 
     @Override
     public int getOrder() {
-        return -10;
+        return Integer.MAX_VALUE;
     }
 
-    @Nullable
-    private String getRefreshToken(String accessToken) {
-        return ValueCaches.get(CacheNames.REFRESH_TOKEN_STORE, accessToken).orElse(null);
+    private Optional<String> getRefreshToken(ServerWebExchange exchange) {
+        HttpCookie cookie = exchange.getRequest().getCookies().getFirst(Constants.RequestParameters.REFRESH_TOKEN);
+        return cookie != null ? Optional.of(cookie.getValue()) : Optional.empty();
     }
 
     private boolean requireRenew(String accessToken) {
-        Long expire = ValueCaches.getExpire(CacheNames.ACCESS_TOKEN_STORE, accessToken);
+        Long expire = ValueCaches.getExpire(Constants.CacheNames.ACCESS_TOKEN_STORE, accessToken);
         log.debug("Access token \"{}\" will expired in {} seconds", accessToken, expire);
         expire = expire == null ? 0 : expire;
         return expire < REQUIRED_REFRESH_TOKEN_LT;

@@ -1,15 +1,12 @@
 package com.inmaytide.orbit.gateway.handler;
 
-import com.inmaytide.exception.translator.ThrowableTranslator;
-import com.inmaytide.exception.web.HttpResponseException;
+import com.inmaytide.exception.web.translator.HttpExceptionTranslatorDelegator;
 import com.inmaytide.orbit.commons.log.OperationLogMessageProducer;
-import com.inmaytide.orbit.commons.service.uaa.AuthorizationService;
 import com.inmaytide.orbit.commons.service.uaa.UserService;
 import com.inmaytide.orbit.gateway.configuration.ApplicationProperties;
 import com.inmaytide.orbit.gateway.domain.AccessToken;
 import com.inmaytide.orbit.gateway.domain.Credentials;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
@@ -36,7 +33,7 @@ public class LoginWithUsernameAndPasswordHandler extends AbstractAuthorizeHandle
 
     private static final Logger LOG = LoggerFactory.getLogger(LoginWithUsernameAndPasswordHandler.class);
 
-    protected LoginWithUsernameAndPasswordHandler(OperationLogMessageProducer producer, ApplicationProperties properties, ThrowableTranslator<HttpResponseException> throwableTranslator, UserService userService, CaptchaHandler captchaHandler) {
+    protected LoginWithUsernameAndPasswordHandler(OperationLogMessageProducer producer, ApplicationProperties properties, HttpExceptionTranslatorDelegator throwableTranslator, UserService userService, CaptchaHandler captchaHandler) {
         super(producer, properties, throwableTranslator, userService, captchaHandler);
     }
 

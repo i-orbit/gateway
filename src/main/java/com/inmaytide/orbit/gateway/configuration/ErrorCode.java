@@ -16,7 +16,6 @@ public enum ErrorCode implements com.inmaytide.exception.web.domain.ErrorCode {
     E_0x00200008("0x00200008", "生成验证码时发生错误"),
     E_0x00200009("0x00200009", "用户名、密码、登录平台等请求参数不能为空"),
     E_0x00200010("0x00200010", "用户名或密码输入错误"),
-
     ;
 
     private final String value;

@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.Instant;
 
@@ -16,6 +17,7 @@ import java.time.Instant;
 @Schema(title = "扫码登录二维码内容验证")
 public class ScanCodeCredentials implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = -8555725055594984597L;
 
     @Schema(title = "二维码内容")
@@ -31,7 +33,7 @@ public class ScanCodeCredentials implements Serializable {
     private String code;
 
     @JsonIgnore
-    private Instant expireAt;
+    private Instant expiry;
 
     public String getContent() {
         return content;
@@ -43,7 +45,7 @@ public class ScanCodeCredentials implements Serializable {
             String[] values = StringUtils.split(CodecUtils.decrypt(content, CodecUtils.RSA_PRIVATE_KEY), ".");
             this.sessionId = values[0];
             this.code = values[1];
-            this.expireAt = Instant.ofEpochMilli(NumberUtils.createLong(values[2]));
+            this.expiry = Instant.ofEpochMilli(NumberUtils.createLong(values[2]));
             if (values.length != 3) { // 二维码内容不正确
                 throw new IllegalArgumentException(content);
             }
@@ -68,12 +70,16 @@ public class ScanCodeCredentials implements Serializable {
         return code;
     }
 
-    public Instant getExpireAt() {
-        return expireAt;
+    public Instant getExpiry() {
+        return expiry;
+    }
+
+    public void setExpiry(Instant expiry) {
+        this.expiry = expiry;
     }
 
     public boolean isExpired() {
-        return expireAt.isBefore(Instant.now());
+        return Instant.now().isAfter(expiry);
     }
 
     @Override
@@ -83,7 +89,7 @@ public class ScanCodeCredentials implements Serializable {
                 ", username='" + username + '\'' +
                 ", sessionId='" + sessionId + '\'' +
                 ", code='" + code + '\'' +
-                ", expireAt=" + expireAt +
+                ", expiry=" + expiry +
                 '}';
     }
 }

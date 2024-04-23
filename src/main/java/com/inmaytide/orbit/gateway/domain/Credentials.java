@@ -1,9 +1,9 @@
 package com.inmaytide.orbit.gateway.domain;
 
 import com.inmaytide.exception.web.BadCredentialsException;
-import com.inmaytide.orbit.commons.consts.Is;
-import com.inmaytide.orbit.commons.consts.Marks;
-import com.inmaytide.orbit.commons.consts.Platforms;
+import com.inmaytide.orbit.commons.constants.Bool;
+import com.inmaytide.orbit.commons.constants.Constants;
+import com.inmaytide.orbit.commons.constants.Platforms;
 import com.inmaytide.orbit.commons.utils.CodecUtils;
 import com.inmaytide.orbit.gateway.configuration.ErrorCode;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -49,7 +49,7 @@ public class Credentials implements Serializable {
     private Platforms platform;
 
     @Schema(title = "强制登录", description = "当用户在同客户端平台其他位置已登录时, 是否强制其他位置的登录下线")
-    private Is forcedReplacement;
+    private Bool forcedReplacement;
 
     public void validate() {
         if (StringUtils.isBlank(username)
@@ -116,11 +116,11 @@ public class Credentials implements Serializable {
         this.platform = platform;
     }
 
-    public Is getForcedReplacement() {
-        return Objects.requireNonNullElse(forcedReplacement, Is.N);
+    public Bool getForcedReplacement() {
+        return Objects.requireNonNullElse(forcedReplacement, Bool.N);
     }
 
-    public void setForcedReplacement(Is forcedReplacement) {
+    public void setForcedReplacement(Bool forcedReplacement) {
         this.forcedReplacement = forcedReplacement;
     }
 
@@ -131,7 +131,7 @@ public class Credentials implements Serializable {
                 """.formatted(
                 getUsername(),
                 isRememberMe(),
-                platform == null ? Marks.NOT_APPLICABLE.getValue() : platform.name()
+                platform == null ? Constants.Markers.NOT_APPLICABLE : platform.name()
         );
     }
 

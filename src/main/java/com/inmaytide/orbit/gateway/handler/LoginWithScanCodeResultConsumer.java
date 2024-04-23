@@ -1,11 +1,11 @@
 package com.inmaytide.orbit.gateway.handler;
 
-import com.inmaytide.exception.translator.ThrowableTranslator;
-import com.inmaytide.exception.web.HttpResponseException;
-import com.inmaytide.orbit.commons.consts.Is;
-import com.inmaytide.orbit.commons.consts.Marks;
-import com.inmaytide.orbit.commons.consts.Platforms;
+import com.inmaytide.exception.web.translator.HttpExceptionTranslatorDelegator;
+import com.inmaytide.orbit.commons.constants.Bool;
+import com.inmaytide.orbit.commons.constants.Constants;
+import com.inmaytide.orbit.commons.constants.Platforms;
 import com.inmaytide.orbit.commons.domain.Oauth2Token;
+import com.inmaytide.orbit.commons.domain.dto.params.LoginParameters;
 import com.inmaytide.orbit.commons.log.OperationLogMessageProducer;
 import com.inmaytide.orbit.commons.log.domain.OperationLog;
 import com.inmaytide.orbit.commons.service.uaa.UserService;
@@ -16,9 +16,10 @@ import com.inmaytide.orbit.gateway.domain.ScanCodeResult;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.amqp.rabbit.annotation.RabbitHandler;
+import org.springframework.amqp.rabbit.annotation.Exchange;
+import org.springframework.amqp.rabbit.annotation.Queue;
+import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.socket.HandshakeInfo;
 
@@ -27,18 +28,21 @@ import org.springframework.web.reactive.socket.HandshakeInfo;
  * @since 2022/9/9
  */
 @Component
-@RabbitListener(queues = LoginWithScanCodeHandler.ROUTE_KEY_SCAN_CODE_LOGIN_RES)
 public class LoginWithScanCodeResultConsumer extends AbstractAuthorizeHandler {
 
     private static final Logger log = LoggerFactory.getLogger(LoginWithScanCodeResultConsumer.class);
 
-    protected LoginWithScanCodeResultConsumer(OperationLogMessageProducer producer, ApplicationProperties properties, ThrowableTranslator<HttpResponseException> throwableTranslator, UserService userService, CaptchaHandler captchaHandler) {
+    protected LoginWithScanCodeResultConsumer(OperationLogMessageProducer producer, ApplicationProperties properties, HttpExceptionTranslatorDelegator throwableTranslator, UserService userService, CaptchaHandler captchaHandler) {
         super(producer, properties, throwableTranslator, userService, captchaHandler);
     }
 
 
-    @RabbitHandler
-    public void onReceiveScanCodeResult(@Payload ScanCodeResult res) {
+    @RabbitListener(bindings = @QueueBinding(
+            value = @Queue(LoginWithScanCodeHandler.ROUTE_KEY_SCAN_CODE_LOGIN_RES),
+            exchange = @Exchange(value = Constants.RabbitMQ.DIRECT_EXCHANGE),
+            key = LoginWithScanCodeHandler.ROUTE_KEY_SCAN_CODE_LOGIN_RES
+    ))
+    public void onReceiveScanCodeResult(ScanCodeResult res) {
         log.debug("Receive a scan code result, content is {}", res.toFullString());
         LoginWithScanCodeHandler.WebSocketSender sender = LoginWithScanCodeHandler.getSender(res.getSessionId());
         if (sender == null) {
@@ -59,12 +63,15 @@ public class LoginWithScanCodeResultConsumer extends AbstractAuthorizeHandler {
     }
 
     private void execute(ScanCodeResult res, LoginWithScanCodeHandler.WebSocketSender sender) {
-        Oauth2Token token = authorizationService.getToken(
-                res.getUsername(),
-                Marks.LOGIN_WITHOUT_PASSWORD.getValue(),
-                Platforms.WEB,
-                Is.Y
-        );
+        // Perform login without password operation to obtain token
+        LoginParameters params = new LoginParameters();
+        params.setLoginName(res.getUsername());
+        params.setForcedReplacement(Bool.Y);
+        params.setPassword(Constants.Markers.LOGIN_WITHOUT_PASSWORD);
+        params.setPlatform(Platforms.WEB);
+        Oauth2Token token = authorizationService.getToken(params);
+
+        // Record operation log
         OperationLog log = new OperationLog();
         log.setDescription("APP扫码登录");
         log.setBusiness("用户登录");
@@ -73,13 +80,14 @@ public class LoginWithScanCodeResultConsumer extends AbstractAuthorizeHandler {
         log.setHttpMethod("WebSocket");
         log.setClientDescription(sender.getSession().getHandshakeInfo().getHeaders().getFirst("User-Agent"));
         log.setIpAddress(getClientIpAddress(sender.getSession().getHandshakeInfo()));
-        log.setResult(Is.Y);
+        log.setResult(Bool.Y);
         userService.getUserByUsername(res.getUsername()).ifPresent(user -> {
             log.setOperator(user.getId());
-            log.setTenantId(user.getTenantId());
+            log.setTenantId(user.getTenant());
         });
         producer.produce(log);
         res.setAccessToken(token.getAccessToken());
+        res.setRefreshToken(token.getRefreshToken());
     }
 
     private String getClientIpAddress(HandshakeInfo handshakeInfo) {

@@ -15,13 +15,13 @@ spring:
           enabled: false
     nacos:
       discovery:
-        server-addr: 192.168.26.195:8848
-        namespace: orbit-${spring.profiles.active}
+        server-addr: 192.168.26.160:31500
+        namespace: ${spring.profiles.active}
         username: nacos
         password: nacos
       config:
-        server-addr: 192.168.26.195:8848
-        namespace: orbit-${spring.profiles.active}
+        server-addr: 192.168.26.160:31500
+        namespace: ${spring.profiles.active}
         username: nacos
         password: nacos
         file-extension: yaml

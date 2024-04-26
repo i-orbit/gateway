@@ -81,10 +81,8 @@ public class LoginWithScanCodeResultConsumer extends AbstractAuthorizeHandler {
         log.setClientDescription(sender.getSession().getHandshakeInfo().getHeaders().getFirst("User-Agent"));
         log.setIpAddress(getClientIpAddress(sender.getSession().getHandshakeInfo()));
         log.setResult(Bool.Y);
-        userService.getUserByUsername(res.getUsername()).ifPresent(user -> {
-            log.setOperator(user.getId());
-            log.setTenantId(user.getTenant());
-        });
+        log.setOperator(token.getUserId());
+        log.setTenantId(token.getTenant());
         producer.produce(log);
         res.setAccessToken(token.getAccessToken());
         res.setRefreshToken(token.getRefreshToken());

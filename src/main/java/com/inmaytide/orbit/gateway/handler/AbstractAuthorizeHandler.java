@@ -114,7 +114,7 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
             params.setPlatform(credentials.getPlatform());
             params.setForcedReplacement(credentials.getForcedReplacement());
             Oauth2Token token = authorizationService.getToken(params);
-            onSuccess(request, credentials);
+            onSuccess(request, credentials, token);
             setTokenCookies(request, token);
             return token;
         } catch (Exception e) {
@@ -134,11 +134,13 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
         }
     }
 
-    private void onSuccess(ServerRequest request, Credentials credentials) {
+    private void onSuccess(ServerRequest request, Credentials credentials, Oauth2Token token) {
         ValueCaches.delete(CACHE_NAME_LOGIN_FAILURE_NUMBERS, credentials.getUsername());
         OperationLog log = buildOperationLog(request, credentials);
         log.setResult(Bool.Y);
         log.setArguments(credentials.toString());
+        log.setOperator(token.getUserId());
+        log.setTenantId(token.getTenant());
         producer.produce(log);
     }
 
@@ -163,10 +165,6 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
         log.setHttpMethod(request.method().name());
         log.setClientDescription(request.headers().firstHeader(Constants.HttpHeaderNames.USER_AGENT));
         log.setIpAddress(getClientIpAddress(request));
-        userService.getUserByUsername(credentials.getUsername()).ifPresent(user -> {
-            log.setOperator(user.getId());
-            log.setTenantId(user.getTenant());
-        });
         return log;
     }
 

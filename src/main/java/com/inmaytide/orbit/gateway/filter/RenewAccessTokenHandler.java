@@ -49,7 +49,7 @@ public class RenewAccessTokenHandler extends AbstractHandler implements GlobalFi
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         wasForciblyCancelled(exchange);
-        String accessToken = getAccessToken(exchange.getRequest());
+        String accessToken = getAccessToken(exchange);
         if (StringUtils.isNotBlank(accessToken) && requireRenew(accessToken)) {
             log.debug("The access token needs to be refreshed");
             synchronized (accessToken.intern()) {

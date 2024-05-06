@@ -57,7 +57,7 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
      * 验证访问来源的黑白名单
      */
     protected void assertAllowAccessSource(ServerRequest request, Credentials credentials) {
-        String ipAddress = getClientIpAddress(request);
+        String ipAddress = getClientIpAddress(request.exchange());
         String geolocation = searchIpAddressGeolocation(ipAddress);
         getLogger().debug("Client IP Address: {}", ipAddress);
         getLogger().debug("Client IP Address Geolocation: {}", geolocation);
@@ -115,7 +115,7 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
             params.setForcedReplacement(credentials.getForcedReplacement());
             Oauth2Token token = authorizationService.getToken(params);
             onSuccess(request, credentials, token);
-            setTokenCookies(request, token);
+            setTokenCookies(request.exchange(), token);
             return token;
         } catch (Exception e) {
             onFailed(request, credentials, e);
@@ -164,7 +164,7 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
         log.setPath(request.path());
         log.setHttpMethod(request.method().name());
         log.setClientDescription(request.headers().firstHeader(Constants.HttpHeaderNames.USER_AGENT));
-        log.setIpAddress(getClientIpAddress(request));
+        log.setIpAddress(getClientIpAddress(request.exchange()));
         return log;
     }
 

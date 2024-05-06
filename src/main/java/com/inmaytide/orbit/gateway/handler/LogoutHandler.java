@@ -31,7 +31,7 @@ public class LogoutHandler extends AbstractAuthorizeHandler {
     }
 
     public Mono<ServerResponse> logout(ServerRequest request) {
-        String token = getAccessToken(request);
+        String token = getAccessToken(request.exchange());
         if (StringUtils.isNotBlank(token)) {
             authorizationService.revokeToken(token);
         }

@@ -49,46 +49,31 @@ public abstract class AbstractHandler {
                 .build();
     }
 
-    protected void setTokenCookies(ServerRequest request, Oauth2Token token) {
-        request.exchange().getResponse().addCookie(buildAccessTokenCookie(token));
-        request.exchange().getResponse().addCookie(buildRefreshTokenCookie(token));
-    }
-
     protected void setTokenCookies(ServerWebExchange exchange, Oauth2Token token) {
         exchange.getResponse().addCookie(buildAccessTokenCookie(token));
         exchange.getResponse().addCookie(buildRefreshTokenCookie(token));
     }
 
-    protected String getClientIpAddress(ServerRequest request) {
+    protected String getClientIpAddress(ServerWebExchange exchange) {
         for (String name : HttpUtils.HEADER_NAMES_FOR_CLIENT_ID) {
-            String value = request.headers().firstHeader(name);
+            String value = exchange.getRequest().getHeaders().getFirst(name);
             if (StringUtils.isNotBlank(value) && !StringUtils.equalsIgnoreCase("unknown", value)) {
                 return HttpUtils.getIpAddress(value);
             }
         }
-        return request.remoteAddress().map(InetSocketAddress::getHostName).orElse(StringUtils.EMPTY);
+        return exchange.getRequest().getRemoteAddress() == null ? StringUtils.EMPTY : exchange.getRequest().getRemoteAddress().getHostName();
     }
 
-    protected String getClientIpAddress(ServerHttpRequest request) {
-        for (String name : HttpUtils.HEADER_NAMES_FOR_CLIENT_ID) {
-            String value = request.getHeaders().getFirst(name);
-            if (StringUtils.isNotBlank(value) && !StringUtils.equalsIgnoreCase("unknown", value)) {
-                return HttpUtils.getIpAddress(value);
-            }
-        }
-        return request.getRemoteAddress() == null ? StringUtils.EMPTY : request.getRemoteAddress().getHostName();
-    }
-
-    protected String getAccessToken(ServerRequest request) {
-        String token = request.headers().firstHeader(Constants.HttpHeaderNames.AUTHORIZATION);
+    protected String getAccessToken(ServerWebExchange exchange) {
+        String token = exchange.getRequest().getHeaders().getFirst(Constants.HttpHeaderNames.AUTHORIZATION);
         if (StringUtils.isBlank(token)) {
-            HttpCookie cookie = request.cookies().getFirst(Constants.RequestParameters.ACCESS_TOKEN);
+            HttpCookie cookie = exchange.getRequest().getCookies().getFirst(Constants.RequestParameters.ACCESS_TOKEN);
             if (cookie != null) {
                 token = cookie.getValue();
             }
         }
         if (StringUtils.isBlank(token)) {
-            token = request.queryParam(Constants.RequestParameters.ACCESS_TOKEN).orElse(StringUtils.EMPTY);
+            token = exchange.getRequest().getQueryParams().getFirst(Constants.RequestParameters.ACCESS_TOKEN);
         }
         if (StringUtils.isBlank(token)) {
             getLogger().debug("There is no access token in this request");
@@ -99,25 +84,6 @@ public abstract class AbstractHandler {
         return token;
     }
 
-    protected String getAccessToken(ServerHttpRequest request) {
-        String token = request.getHeaders().getFirst(Constants.HttpHeaderNames.AUTHORIZATION);
-        if (StringUtils.isBlank(token)) {
-            HttpCookie cookie = request.getCookies().getFirst(Constants.RequestParameters.ACCESS_TOKEN);
-            if (cookie != null) {
-                token = cookie.getValue();
-            }
-        }
-        if (StringUtils.isBlank(token)) {
-            token = request.getQueryParams().getFirst(Constants.RequestParameters.ACCESS_TOKEN);
-        }
-        if (StringUtils.isBlank(token)) {
-            getLogger().debug("There is no access token in this request");
-            return StringUtils.EMPTY;
-        }
-        token = token.replace(Constants.HttpHeaderNames.AUTHORIZATION_PREFIX, "");
-        getLogger().debug("Received access token from the request is \"{}\"", token);
-        return token;
-    }
 
     protected String searchIpAddressGeolocation(@Nullable String ipAddress) {
         if (StringUtils.isNotBlank(ipAddress)) {

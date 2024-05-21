@@ -121,20 +121,21 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
             return token;
         } catch (Exception e) {
             onFailed(request, credentials, e);
+            HttpResponseException ex = new HttpResponseException(e);
             Optional<HttpResponseException> translated = throwableTranslator.translate(e);
             if (translated.isPresent()) {
-                HttpResponseException ex = translated.get();
-                // 如果账号不存在或密码错误, 根据安全管理要求整合错误信息模糊具体的错误提醒
-                if (Objects.equals(ex.getCode(), "0x00100002") || Objects.equals(ex.getCode(), "0x00100003")) {
-                    throw new BadCredentialsException(ErrorCode.E_0x00200010);
-                }
+                ex = translated.get();
                 // 账号已登录或认证服务不可用不累加异常次数
                 if (Objects.equals(ex.getCode(), "0x00100001") || ex instanceof ServiceUnavailableException) {
-                    throw e;
+                    throw ex;
+                }
+                // 如果账号不存在或密码错误, 根据安全管理要求整合错误信息模糊具体的错误提醒
+                if (Objects.equals(ex.getCode(), "0x00100002") || Objects.equals(ex.getCode(), "0x00100003")) {
+                    ex = new BadCredentialsException(ErrorCode.E_0x00200010);
                 }
             }
             accumulateFailuresNumber(credentials.getUsername());
-            throw e;
+            throw ex;
         }
     }
 

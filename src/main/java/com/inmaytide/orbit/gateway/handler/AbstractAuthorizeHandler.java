@@ -2,6 +2,7 @@ package com.inmaytide.orbit.gateway.handler;
 
 import com.inmaytide.exception.web.AccessDeniedException;
 import com.inmaytide.exception.web.BadCredentialsException;
+import com.inmaytide.exception.web.HttpResponseException;
 import com.inmaytide.exception.web.ServiceUnavailableException;
 import com.inmaytide.exception.web.domain.DefaultResponse;
 import com.inmaytide.exception.web.translator.HttpExceptionTranslatorDelegator;
@@ -21,6 +22,7 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 
 import java.time.Instant;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -119,7 +121,9 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
             return token;
         } catch (Exception e) {
             onFailed(request, credentials, e);
-            throwableTranslator.translate(e).ifPresent(ex -> {
+            Optional<HttpResponseException> translated = throwableTranslator.translate(e);
+            if (translated.isPresent()) {
+                HttpResponseException ex = translated.get();
                 // 如果账号不存在或密码错误, 根据安全管理要求整合错误信息模糊具体的错误提醒
                 if (Objects.equals(ex.getCode(), "0x00100002") || Objects.equals(ex.getCode(), "0x00100003")) {
                     throw new BadCredentialsException(ErrorCode.E_0x00200010);
@@ -128,7 +132,7 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
                 if (Objects.equals(ex.getCode(), "0x00100001") || ex instanceof ServiceUnavailableException) {
                     throw e;
                 }
-            });
+            }
             accumulateFailuresNumber(credentials.getUsername());
             throw e;
         }

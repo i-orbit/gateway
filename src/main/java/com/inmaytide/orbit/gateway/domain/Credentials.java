@@ -72,7 +72,7 @@ public class Credentials implements Serializable {
             return CodecUtils.decrypt(password, CodecUtils.RSA_PRIVATE_KEY);
         } catch (Exception e) {
             if (log.isDebugEnabled()) {
-                log.error("Password of User{username = {}} decryption failed, Cause by: ", getPassword(), e);
+                log.error("Password of User{username = {}} decryption failed, Cause by: ", getUsername(), e);
             } else {
                 log.warn("Password of User{username = {}} decryption failed", getUsername());
             }

@@ -60,6 +60,10 @@
             <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.fasterxml.jackson.module</groupId>
+            <artifactId>jackson-module-afterburner</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.inmaytide</groupId>
             <artifactId>commons-exception-starter</artifactId>
         </dependency>

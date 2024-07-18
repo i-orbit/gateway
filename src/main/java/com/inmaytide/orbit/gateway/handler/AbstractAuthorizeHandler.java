@@ -87,9 +87,9 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
             throw new AccessDeniedException(ErrorCode.E_0x00200003, String.valueOf(MAXIMUM_NUMBER_OF_FAILED_LOGIN_ATTEMPTS), String.valueOf(EXCEED_NUMBER_LOCK_TIMES_IN_MINUTE));
         }
         if (failuresNumber >= 1) {
-            if (!captchaHandler.validate(credentials.getCaptchaKey(), credentials.getCaptchaValue())) {
-                throw new BadCredentialsException(ErrorCode.E_0x00200007);
-            }
+//            if (!captchaHandler.validate(credentials.getCaptchaKey(), credentials.getCaptchaValue())) {
+//                throw new BadCredentialsException(ErrorCode.E_0x00200007);
+//            }
         }
     }
 

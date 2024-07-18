@@ -1,5 +1,6 @@
 package com.inmaytide.orbit.gateway.handler;
 
+import cloud.tianai.captcha.application.ImageCaptchaApplication;
 import com.inmaytide.exception.web.translator.HttpExceptionTranslatorDelegator;
 import com.inmaytide.orbit.commons.constants.Bool;
 import com.inmaytide.orbit.commons.constants.Constants;
@@ -32,8 +33,8 @@ public class LoginWithScanCodeResultConsumer extends AbstractAuthorizeHandler {
 
     private static final Logger log = LoggerFactory.getLogger(LoginWithScanCodeResultConsumer.class);
 
-    protected LoginWithScanCodeResultConsumer(OperationLogMessageProducer producer, ApplicationProperties properties, HttpExceptionTranslatorDelegator throwableTranslator, UserService userService, CaptchaHandler captchaHandler) {
-        super(producer, properties, throwableTranslator, userService, captchaHandler);
+    protected LoginWithScanCodeResultConsumer(OperationLogMessageProducer producer, ApplicationProperties properties, HttpExceptionTranslatorDelegator throwableTranslator, UserService userService, ImageCaptchaApplication captchaApplication) {
+        super(producer, properties, throwableTranslator, userService, captchaApplication);
     }
 
 

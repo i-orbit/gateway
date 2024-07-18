@@ -5,7 +5,7 @@ import cloud.tianai.captcha.application.ImageCaptchaApplication;
 import cloud.tianai.captcha.application.vo.CaptchaResponse;
 import cloud.tianai.captcha.application.vo.ImageCaptchaVO;
 import cloud.tianai.captcha.common.constant.CaptchaTypeConstant;
-import com.inmaytide.orbit.gateway.domain.Captcha;
+import com.inmaytide.orbit.gateway.domain.CaptchaValidate;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -41,12 +41,19 @@ public class CaptchaHandler extends AbstractHandler {
     @Operation(summary = "获取验证码信息")
     @ApiResponse(
             content = @Content(
-                    schema = @Schema(implementation = Captcha.class)
+                    schema = @Schema(implementation = CaptchaResponse.class)
             )
     )
     public Mono<ServerResponse> getCaptcha(@NonNull ServerRequest request) {
         CaptchaResponse<ImageCaptchaVO> response = captchaApplication.generateCaptcha(CaptchaTypeConstant.SLIDER);
         return ok().body(BodyInserters.fromValue(response));
+    }
+
+    @Operation(summary = "验证验证码")
+    public Mono<ServerResponse> validate(@NonNull ServerRequest request) {
+        return request.bodyToMono(CaptchaValidate.class)
+                .map(e -> captchaApplication.matching(e.getId(), e.getData()))
+                .flatMap(match -> ok().bodyValue(match));
     }
 
     @Override

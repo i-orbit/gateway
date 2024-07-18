@@ -39,17 +39,14 @@ public class Credentials implements Serializable {
     @Schema(title = "记住我")
     private boolean rememberMe = false;
 
-    @Schema(title = "验证码存储缓存KEY", description = "登录尝试失败超过一次后必填")
-    private String captchaKey;
-
-    @Schema(title = "验证码", description = "登录尝试失败超过一次后必填")
-    private String captchaValue;
-
     @Schema(title = "客户端平台")
     private Platforms platform;
 
     @Schema(title = "强制登录", description = "当用户在同客户端平台其他位置已登录时, 是否强制其他位置的登录下线")
     private Bool forcedReplacement;
+
+    @Schema(title = "验证码验证信息")
+    private CaptchaValidate captcha;
 
     public void validate() {
         if (StringUtils.isBlank(username)
@@ -92,22 +89,6 @@ public class Credentials implements Serializable {
         this.rememberMe = rememberMe;
     }
 
-    public String getCaptchaKey() {
-        return captchaKey;
-    }
-
-    public void setCaptchaKey(String captchaKey) {
-        this.captchaKey = captchaKey;
-    }
-
-    public String getCaptchaValue() {
-        return captchaValue;
-    }
-
-    public void setCaptchaValue(String captchaValue) {
-        this.captchaValue = captchaValue;
-    }
-
     public Platforms getPlatform() {
         return platform;
     }
@@ -122,6 +103,14 @@ public class Credentials implements Serializable {
 
     public void setForcedReplacement(Bool forcedReplacement) {
         this.forcedReplacement = forcedReplacement;
+    }
+
+    public CaptchaValidate getCaptcha() {
+        return captcha;
+    }
+
+    public void setCaptcha(CaptchaValidate captcha) {
+        this.captcha = captcha;
     }
 
     @Override

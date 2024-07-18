@@ -1,5 +1,6 @@
 package com.inmaytide.orbit.gateway.handler;
 
+import cloud.tianai.captcha.application.ImageCaptchaApplication;
 import com.inmaytide.exception.web.translator.HttpExceptionTranslatorDelegator;
 import com.inmaytide.orbit.commons.log.OperationLogMessageProducer;
 import com.inmaytide.orbit.commons.service.uaa.UserService;
@@ -33,8 +34,8 @@ public class LoginWithUsernameAndPasswordHandler extends AbstractAuthorizeHandle
 
     private static final Logger LOG = LoggerFactory.getLogger(LoginWithUsernameAndPasswordHandler.class);
 
-    protected LoginWithUsernameAndPasswordHandler(OperationLogMessageProducer producer, ApplicationProperties properties, HttpExceptionTranslatorDelegator throwableTranslator, UserService userService, CaptchaHandler captchaHandler) {
-        super(producer, properties, throwableTranslator, userService, captchaHandler);
+    protected LoginWithUsernameAndPasswordHandler(OperationLogMessageProducer producer, ApplicationProperties properties, HttpExceptionTranslatorDelegator throwableTranslator, UserService userService, ImageCaptchaApplication captchaApplication) {
+        super(producer, properties, throwableTranslator, userService, captchaApplication);
     }
 
 

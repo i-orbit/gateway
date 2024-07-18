@@ -1,5 +1,6 @@
 package com.inmaytide.orbit.gateway.handler;
 
+import cloud.tianai.captcha.application.ImageCaptchaApplication;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.inmaytide.exception.web.translator.HttpExceptionTranslatorDelegator;
 import com.inmaytide.orbit.commons.log.OperationLogMessageProducer;
@@ -57,8 +58,8 @@ public class LoginWithScanCodeHandler extends AbstractAuthorizeHandler implement
 
     private final ObjectMapper objectMapper;
 
-    protected LoginWithScanCodeHandler(OperationLogMessageProducer producer, ApplicationProperties properties, HttpExceptionTranslatorDelegator throwableTranslator, UserService userService, CaptchaHandler captchaHandler, RabbitProducer rabbitProducer, ObjectMapper objectMapper) {
-        super(producer, properties, throwableTranslator, userService, captchaHandler);
+    protected LoginWithScanCodeHandler(OperationLogMessageProducer producer, ApplicationProperties properties, HttpExceptionTranslatorDelegator throwableTranslator, UserService userService, ImageCaptchaApplication captchaApplication, RabbitProducer rabbitProducer, ObjectMapper objectMapper) {
+        super(producer, properties, throwableTranslator, userService, captchaApplication);
         this.rabbitProducer = rabbitProducer;
         this.objectMapper = objectMapper;
     }

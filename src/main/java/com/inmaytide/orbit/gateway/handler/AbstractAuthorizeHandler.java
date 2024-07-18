@@ -1,5 +1,7 @@
 package com.inmaytide.orbit.gateway.handler;
 
+import cloud.tianai.captcha.application.ImageCaptchaApplication;
+import cloud.tianai.captcha.spring.plugins.secondary.SecondaryVerificationApplication;
 import com.inmaytide.exception.web.AccessDeniedException;
 import com.inmaytide.exception.web.BadCredentialsException;
 import com.inmaytide.exception.web.HttpResponseException;
@@ -45,14 +47,14 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
 
     protected final UserService userService;
 
-    private final CaptchaHandler captchaHandler;
+    private final ImageCaptchaApplication captchaApplication;
 
-    protected AbstractAuthorizeHandler(OperationLogMessageProducer producer, ApplicationProperties properties, HttpExceptionTranslatorDelegator throwableTranslator, UserService userService, CaptchaHandler captchaHandler) {
+    protected AbstractAuthorizeHandler(OperationLogMessageProducer producer, ApplicationProperties properties, HttpExceptionTranslatorDelegator throwableTranslator, UserService userService, ImageCaptchaApplication captchaApplication) {
         this.producer = producer;
         this.properties = properties;
         this.throwableTranslator = throwableTranslator;
         this.userService = userService;
-        this.captchaHandler = captchaHandler;
+        this.captchaApplication = captchaApplication;
     }
 
     /**
@@ -87,9 +89,14 @@ public abstract class AbstractAuthorizeHandler extends AbstractHandler {
             throw new AccessDeniedException(ErrorCode.E_0x00200003, String.valueOf(MAXIMUM_NUMBER_OF_FAILED_LOGIN_ATTEMPTS), String.valueOf(EXCEED_NUMBER_LOCK_TIMES_IN_MINUTE));
         }
         if (failuresNumber >= 1) {
-//            if (!captchaHandler.validate(credentials.getCaptchaKey(), credentials.getCaptchaValue())) {
-//                throw new BadCredentialsException(ErrorCode.E_0x00200007);
-//            }
+            if (credentials.getCaptcha() == null) {
+                throw new BadCredentialsException(ErrorCode.E_0x00200007);
+            }
+            if (captchaApplication instanceof SecondaryVerificationApplication sva) {
+                if (!sva.matching(credentials.getCaptcha().getId(), credentials.getCaptcha().getData()).isSuccess()) {
+                    throw new BadCredentialsException(ErrorCode.E_0x00200007);
+                }
+            }
         }
     }
 

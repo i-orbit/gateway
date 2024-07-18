@@ -60,7 +60,8 @@ public class WebConfiguration {
         return route(RequestPredicates.POST("/authorize/login"), loginWithUsernameAndPasswordHandler::loginWithUsernameAndPassword)
                 .andRoute(RequestPredicates.POST("/authorize/scan-code"), loginWithScanCodeHandler::validateScanCode)
                 .andRoute(RequestPredicates.DELETE("/authorize/logout"), logoutHandler::logout)
-                .andRoute(RequestPredicates.GET("/authorize/captcha"), captchaHandler::getCaptcha);
+                .andRoute(RequestPredicates.POST("/authorize/captcha"), captchaHandler::getCaptcha)
+                .andRoute(RequestPredicates.POST("/authorize/captcha/validate"), captchaHandler::validate);
     }
 
     @Bean

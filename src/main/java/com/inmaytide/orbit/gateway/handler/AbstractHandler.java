@@ -31,7 +31,6 @@ public abstract class AbstractHandler {
         return ResponseCookie.from(Constants.RequestParameters.ACCESS_TOKEN)
                 .httpOnly(true)
                 .path("/")
-                .maxAge(token.getExpiresIn())
                 .value(token.getAccessToken())
                 .build();
     }
@@ -40,7 +39,6 @@ public abstract class AbstractHandler {
         return ResponseCookie.from(Constants.RequestParameters.REFRESH_TOKEN)
                 .httpOnly(true)
                 .path("/")
-                .maxAge(token.getExpiresIn())
                 .value(token.getRefreshToken())
                 .build();
     }
